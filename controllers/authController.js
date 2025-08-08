@@ -13,11 +13,12 @@ async function cadastrar(req, res) {
   try {
     const { nome, cpf, email, telefone, senha, tipo } = req.body;
     const senhaHash = await bcrypt.hash(senha, 10);
+    const cpfHash = await bcrypt.hash(cpf, 10);
     const codigo2FA = generate2FACode();
 
     const user = await User.create({
       nome,
-      cpf,
+      cpf: cpfHash,
       email,
       telefone: telefone.replace(/\D/g, ''),
       senha: senhaHash,
