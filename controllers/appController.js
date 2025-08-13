@@ -55,7 +55,6 @@ async function editarContaAPP(req, res) {
     user.nome = nome;
     user.telefone = telefone.replace(/\D/g, '');
     user.email = email;
-    user.tipo = tipo;
     await user.save();
     res.json({ message: "Perfil atualizado com sucesso." });
   } catch (err) {
