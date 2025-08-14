@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const UserAPP = require('../models/userApp')
+const UserAPP = require('../models/userApp');
+const DeliveryRegister = require('../models/deliveryRegister');
 const { generate2FACode } = require('../utils/generate2FACode');
 const { send2FACode, transporter } = require('../services/mailService');
 
@@ -59,6 +60,24 @@ async function editarContaAPP(req, res) {
     res.json({ message: "Perfil atualizado com sucesso." });
   } catch (err) {
     res.status(500).json({ error: "Erro ao atualizar perfil." });
+  }
+}
+
+async function criarRegistroEntrega(req, res) {
+  try{
+    const { nome, data, telefone, hrentrada, placa } = req.body;
+
+    const deliveryRegister = await DeliveryRegister.create({
+      nome,
+      telefone,
+      data,
+      hrentrada,
+      placa
+    });
+  }
+  catch (err) {
+    console.error('Erro no registro de entrega:', err);
+    res.status(500).json({ error: 'Erro ao registrar a entrega. Detalhes no terminal.'});
   }
 }
     
