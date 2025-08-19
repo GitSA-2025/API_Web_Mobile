@@ -2,8 +2,11 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UserAPP = require('../models/userApp');
 const DeliveryRegister = require('../models/deliveryRegister');
+const accessRegister = require('../models/accessRegister');
 const { generate2FACode } = require('../utils/generate2FACode');
 const { send2FACode, transporter } = require('../services/mailService');
+const { AccessDeniedError } = require('sequelize');
+const AccessRegister = require('../models/accessRegister');
 
 async function cadastrarAPP(req, res) {
     try {
@@ -78,6 +81,58 @@ async function criarRegistroEntrega(req, res) {
   catch (err) {
     console.error('Erro no registro de entrega:', err);
     res.status(500).json({ error: 'Erro ao registrar a entrega. Detalhes no terminal.'});
+  }
+}
+
+async function criarRegistroEntrada(req, res){
+  try{
+    const { nome, tipo, cpf, placa } = req.body;
+
+    if(!nome || !tipo || !cpf){
+      return res.status(400).json({ error: 'Nome, tipo de pessoa e CPF estão em branco. Preencha os campos corretamente.'});
+    }
+
+    const verifPlaca = "";
+
+    if(placa == "" || !placa){
+      verifPlaca = "Não se aplica.";
+    }
+    else {
+      verifPlaca = placa;
+    }
+
+    const cpfRegex = /^\d{11}$/;
+    if (!cpfRegex.test(cpf)){
+      return res.status(400).json({ error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.'});
+    }
+
+    const cpfHast = await bcrypt.hash(cpf, 10);
+
+    const agora = new Date();
+    const data = agora.toISOString().split('T')[0];
+    const hrentrada = agora.toTimeString().split('')[0];
+
+    const registro = await AccessRegister.create({
+      nome: nome,
+      cpf: cpfHast,
+      tipo: tipo,
+      data: data,
+      hrentrada: hrentrada,
+      hrsaida: '-',
+      placa: verifPlaca,
+    });
+
+    res.status(201).json({ msg: 'Entrada registrada com sucesso!', registro: {
+      id: registro.id,
+      nome: registro.nome,
+      tipo: registro.tipo,
+      data: registro.data,
+      placa: registro.placa,
+    }})
+  }
+  catch(err){
+    console.error('Erro ao registro entrada: ', err)
+    res.status(500).json({error: 'Erro ao registrar entrada.'});
   }
 }
     
