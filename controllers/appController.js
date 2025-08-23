@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UserAPP = require('../models/userApp');
 const DeliveryRegister = require('../models/deliveryRegister');
-const accessRegister = require('../models/accessRegister');
+const AccessRegister = require('../models/accessRegister');
 const { generate2FACode } = require('../utils/generate2FACode');
 const { send2FACode, transporter } = require('../services/mailService');
 const { AccessDeniedError } = require('sequelize');
@@ -135,4 +135,48 @@ async function criarRegistroEntrada(req, res){
     res.status(500).json({error: 'Erro ao registrar entrada.'});
   }
 }
-    
+
+async function exbirRegistrosEntrega(req, res) {
+  try{
+    const entregas = await DeliveryRegister.findAll({
+      order: [['data', 'DESC'], ['hrentrada', 'DESC']]
+    });
+
+    res.status(200).json(entregas);
+  }
+  catch(err){
+    console.error('Erro ao listar entregas:', err);
+    res.status(500).json({error: 'Erro ao listar entregas.'});
+  }
+}
+
+async function exbirRegistrosEntrada(req, res) {
+  try{
+    const entregas = await AccessRegister.findAll({
+      order: [['data', 'DESC'], ['hrentrada', 'DESC']]
+    });
+
+    res.status(200).json(entregas);
+  }
+  catch(err){
+    console.error('Erro ao listar entregas:', err);
+    res.status(500).json({error: 'Erro ao listar entregas.'});
+  }
+}
+
+async function verContaAPP(req, res) {
+  const user = await User.findByPk(req.userId);
+  res.json(user);
+}
+
+module.exports = {
+  cadastrarAPP,
+  loginAPP,
+  verificar2FAAPP,
+  editarContaAPP,
+  criarRegistroEntrega,
+  criarRegistroEntrada,
+  exbirRegistrosEntrega,
+  exbirRegistrosEntrada,
+  verContaAPP,
+};
