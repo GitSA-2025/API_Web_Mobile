@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UserAPP = require('../models/userApp');
@@ -5,8 +7,7 @@ const DeliveryRegister = require('../models/deliveryRegister');
 const AccessRegister = require('../models/accessRegister');
 const { generate2FACode } = require('../utils/generate2FACode');
 const { send2FACode, transporter } = require('../services/mailService');
-const { AccessDeniedError } = require('sequelize');
-const AccessRegister = require('../models/accessRegister');
+
 
 async function cadastrarAPP(req, res) {
     try {

@@ -20,5 +20,5 @@ sequelize.sync().then(() => {
     app.listen(3000, () => console.log('Servidor rodando na porta 3000'));
 });
 
-console.log("EMAIL:", process.env.MAIL_USER);
-console.log("SENHA:", process.env.MAIL_PASS ? "OK" : "VAZIA");
+console.log("EMAIL:", process.env.EMAIL_USER);
+console.log("SENHA:", process.env.EMAIL_PASS ? "OK" : "VAZIA");
