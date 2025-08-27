@@ -10,7 +10,8 @@ const {
   exbirRegistrosEntrega,
   exbirRegistrosEntrada,
   verContaAPP,
-  editarRegistroEntrada
+  editarRegistroEntrada,
+  editarRegistroEntrega
 } = require('../controllers/appController');
 
 const { authMiddleware } = require('../middleware/auth');
