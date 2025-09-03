@@ -11,7 +11,9 @@ const {
   exbirRegistrosEntrada,
   verContaAPP,
   editarRegistroEntrada,
-  editarRegistroEntrega
+  editarRegistroEntrega,
+  exibirRegistroEntradaPorID,
+  exibirRegistroEntregaPorID
 } = require('../controllers/appController');
 
 const { authMiddleware } = require('../middleware/auth');
@@ -28,5 +30,6 @@ router.get('/app/verConta', authMiddleware, verContaAPP);
 router.post('/app/editarConta', authMiddleware, editarContaAPP);
 router.post('/app/editarRegistroEntrada/:idRegister', authMiddleware, editarRegistroEntrada);
 router.post('/app/editarRegistroEntrega/:idRegister', authMiddleware, editarRegistroEntrega);
-
+router.get('/app/exibirEntradas/:idRegister', authMiddleware, exibirRegistroEntradaPorID);
+router.get('/app/exibirEntregas/:idRegister', authMiddleware, exibirRegistroEntregaPorID);
 module.exports = router;
