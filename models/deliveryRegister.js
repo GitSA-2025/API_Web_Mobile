@@ -25,6 +25,10 @@ module.exports = (sequelize, DataTypes) => {
     placa: {
       type: DataTypes.STRING,
       allowNull: true
+    },
+    industria: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
   }, {
     freezeTableName: true,
