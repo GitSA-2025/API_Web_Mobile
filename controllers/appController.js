@@ -69,7 +69,7 @@ async function editarContaAPP(req, res) {
 
 async function criarRegistroEntrega(req, res) {
   try {
-    const { nome, telefone, placa } = req.body;
+    const { nome, telefone, placa, industria } = req.body;
 
     const agora = new Date();
     const data = agora.toISOString().split('T')[0];
@@ -80,10 +80,11 @@ async function criarRegistroEntrega(req, res) {
       telefone,
       data,
       hrentrada,
-      placa
+      placa,
+      industria
     });
 
-   
+
     res.status(201).json({ message: 'Entrega registrada com sucesso.', deliveryRegister });
   } catch (err) {
     console.error('Erro no registro de entrega:', err);
@@ -209,7 +210,7 @@ async function editarRegistroEntrada(req, res) {
     await registro.save();
     res.json({ message: "Registro de entrada atualizado com sucesso." });
   }
-  catch(err){
+  catch (err) {
     res.status(500).json({ error: "Erro ao atualizar o registro." });
     console.log(err);
   }
@@ -229,9 +230,59 @@ async function editarRegistroEntrega(req, res) {
     await registro.save();
     res.json({ message: "Registro de entrada atualizado com sucesso." });
   }
-  catch(err){
+  catch (err) {
     res.status(500).json({ error: "Erro ao atualizar o registro." });
     console.log(err);
+  }
+}
+
+async function exibirRegistroEntradaPorID(req, res) {
+  try {
+    const { idRegister } = req.params;
+
+    const registro = await AccessRegister.findByPk(idRegister);
+
+    if (!registro) {
+      return res.status(404).json({ error: "Registro de entrada não encontrado." });
+    }
+
+    res.status(200).json({
+      idRegister: registro.idRegister,
+      nome: registro.nome,
+      tipo: registro.tipo,
+      data: registro.data,
+      hrentrada: registro.hrentrada,
+      hrsaida: registro.hrsaida,
+      placa: registro.placa
+    });
+  } catch (err) {
+    console.error("Erro ao buscar registro de entrada:", err);
+    res.status(500).json({ error: "Erro ao buscar registro de entrada." });
+  }
+}
+
+async function exibirRegistroEntregaPorID(req, res) {
+  try {
+    const { idRegister } = req.params;
+
+    const registro = await DeliveryRegister.findByPk(idRegister);
+
+    if (!registro) {
+      return res.status(404).json({ error: "Registro de entrega não encontrado." });
+    }
+
+    res.status(200).json({
+      idRegister: registro.idRegister,
+      nome: registro.nome,
+      telefone: registro.telefone,
+      data: registro.data,
+      hrentrada: registro.hrentrada,
+      placa: registro.placa,
+      industria: registro.industria
+    });
+  } catch (err) {
+    console.error("Erro ao buscar registro de entrega:", err);
+    res.status(500).json({ error: "Erro ao buscar registro de entrega." });
   }
 }
 
@@ -246,5 +297,7 @@ module.exports = {
   exbirRegistrosEntrada,
   verContaAPP,
   editarRegistroEntrada,
-  editarRegistroEntrega
+  editarRegistroEntrega,
+  exibirRegistroEntradaPorID,
+  exibirRegistroEntregaPorID,
 };
