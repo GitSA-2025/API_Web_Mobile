@@ -10,6 +10,7 @@ const { generate2FACode } = require('../utils/generate2FACode');
 const { send2FACode, transporter } = require('../services/mailService');
 const { generateQRCode, generateQRCodeAsFile } = require('../utils/generateQRCode');
 const QRCodeEntry = require('../models/qrcode');
+import pool from '../db/db';
 
 async function cadastrar(req, res) {
   try {
@@ -18,32 +19,43 @@ async function cadastrar(req, res) {
     const cpfHash = await bcrypt.hash(cpf, 10);
     const codigo2FA = generate2FACode();
 
-    const user = await User.create({
-      nome,
-      cpf: cpfHash,
-      email,
-      telefone: telefone.replace(/\D/g, ''),
-      senha: senhaHash,
-      tipo,
-      codigo2FA
-    });
+    const result = await pool.query(
+      "INSERT INTO userweb (name, cpf, user_email, phone, user_password, type_user, code2fa) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      [nome, cpfHash, email, telefone, senhaHash, codigo2FA]
+    );
 
     await send2FACode(email, codigo2FA);
-    res.status(201).json({ message: 'Usuário cadastrado! Verifique o código enviado por e-mail.' });
-  } catch (err) {
-    console.error('Erro no cadastro:', err);
+    res.status(201).json({
+      message: 'Usuário cadastrado! Verifique o código enviado por e-mail.'
+    });
+
+    res.json(result.rows[0]);
+  }
+  catch (err) {
+    console.error('Erro no cadastro: ', err);
     res.status(500).json({ error: 'Erro ao cadastrar usuário. Detalhes no terminal.' });
   }
 }
 
+
+
 async function verificar2FA(req, res) {
   const { email, codigo } = req.body;
-  const user = await User.findOne({ where: { email } });
-  if (!user || user.codigo2FA !== codigo) return res.status(400).json({ error: 'Código inválido.' });
+  const result = await pool.query(
+    "SELECT * userweb WHERE email = $1",
+  [email]);
 
-  user.verificado2FA = true;
-  await user.save();
-  res.json({ message: '2FA verificado com sucesso!' });
+  const user = result.rows[0];
+  
+  if(!user || user.code2fa !== codigo) return
+  res.status(400).json({ error: 'Código inválido.'});
+  
+  const env = await pool.query(
+    "UPDATE userweb SET verify2fa = 'true' WHERE id_user = $1",
+    [user.id_user]
+  );
+
+  res.json(result.rows[0]);
 }
 
 async function login(req, res) {
@@ -231,7 +243,7 @@ Equipe SA 💼`
       res.status(500).json({ error: "Erro ao enviar via UltraMsg", details: response.data });
     }
   } catch (err) {
-    console.error("Erro ao enviar QR Code via WhatsApp:", err.message, err.stack); 
+    console.error("Erro ao enviar QR Code via WhatsApp:", err.message, err.stack);
     res.status(500).json({ error: "Erro interno ao enviar QR Code via WhatsApp." });
   }
 }
