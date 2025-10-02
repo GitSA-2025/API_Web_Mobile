@@ -60,20 +60,20 @@ async function verificar2FA(req, res) {
 
 async function login(req, res) {
   const { email, senha } = req.body;
-  const user = await User.findOne({ where: { email } });
-  if (!user || !(await bcrypt.compare(senha, user.senha))) return res.status(401).json({ error: 'Credenciais inválidas' });
-  if (!user.verificado2FA) return res.status(403).json({ error: '2FA não verificado' });
+  const result = await pool.query(
+    "SELECT * userweb WHERE email = $1",
+  [email]);
 
-  const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  const user = result.rows[0];
+
+  if(!user || !(await bcrypt.compare(senha, user.user_password))) return res.status(401).json({ error: 'Credenciais inválidas' });
+  if (!user.verify2fa) return res.status(403).json({ error: '2FA não verificado' });
+
+  const token = jwt.sign({ id: user.id_user }, process.env.JWT_SECRET, { expiresIn: '1h' });
   res.json({ token });
 }
 
-async function verConta(req, res) {
-  const user = await User.findByPk(req.userId);
-  res.json(user);
-}
-
-async function gerarQRCodeController(req, res) {
+/*async function gerarQRCodeController(req, res) {
   const user = await User.findByPk(req.userId);
 
   const qrEntry = await QRCodeEntry.create({
@@ -92,6 +92,17 @@ async function gerarQRCodeController(req, res) {
 
   const qrCode = await generateQRCode(data);
   res.json({ qrCode });
+}
+*/
+
+async function gerarQRCodeController(req, res) {
+  const result = await pool.query(
+    "SELECT * userweb WHERE id_user = $1",
+  [req.userId]);
+
+  const user = result.rows[0];
+
+  //const qrEntry = await
 }
 
 async function enviarQrCodeEmail(req, res) {
