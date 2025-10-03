@@ -7,9 +7,9 @@ const { DeliveryRegister } = require('../models');
 const AccessRegister = require('../models/accessRegister');
 const { generate2FACode } = require('../utils/generate2FACode');
 const { send2FACode, transporter } = require('../services/mailService');
+const sql = require('../db/db');
 
-
-async function cadastrarAPP(req, res) {
+/*async function cadastrarAPP(req, res) {
   try {
     const { nome, email, telefone, senha } = req.body;
     const senhaHash = await bcrypt.hash(senha, 10);
@@ -30,9 +30,34 @@ async function cadastrarAPP(req, res) {
     console.error('Erro no cadastro:', err);
     res.status(500).json({ error: 'Erro ao cadastrar usuário. Detalhes no terminal.' });
   }
+}*/
+
+async function cadastrarAPP(req, res) {
+  try {
+    const { nome, email, telefone, senha } = req.body;
+    const senhaHash = await bcrypt.hash(senha, 10);
+    const codigo2FA = generate2FACode();
+
+    const result = await sql`
+      INSERT INTO userapp (name, user_email, phone, user_password, code2fa)
+      VALUES (${nome}, ${email}, ${telefone}, ${senhaHash}, ${codigo2FA})
+      RETURNING *
+    `;
+
+    await send2FACode(email, codigo2FA);
+
+    res.status(201).json({
+      message: 'Usuário cadastrado! Verifique o código enviado por e-mail.',
+      usuario: result[0], 
+    });
+  } catch (err) {
+    console.error('Erro no cadastro:', err);
+    res.status(500).json({ error: 'Erro ao cadastrar usuário. Detalhes no terminal.' });
+  }
 }
 
-async function verificar2FAAPP(req, res) {
+
+/*async function verificar2FAAPP(req, res) {
   const { email, codigo } = req.body;
   const user = await UserAPP.findOne({ where: { email } });
   if (!user || user.codigo2FA !== codigo) return res.status(400).json({ error: 'Código inválido.' });
@@ -40,9 +65,30 @@ async function verificar2FAAPP(req, res) {
   user.verificado2FA = true;
   await user.save();
   res.json({ message: '2FA verificado com sucesso!' });
+}*/
+
+async function verificar2FAAPP(req, res) {
+  const { email, codigo } = req.body;
+  const result = await pool.query(
+    "SELECT * userapp WHERE email = $1",
+    [email]);
+
+  const user = result.rows[0];
+  
+  if(!user || user.code2fa !== codigo) return
+  res.status(400).json({ error: 'Código inválido.'});
+
+ const env = await pool.query(
+    "UPDATE userweb SET verify2fa = 'true' WHERE id_user = $1",
+    [user.id_user]
+  );
+
+  res.json(result.rows[0], env.rows[0]);
+
+  res.json({ message: '2FA verificado com sucesso!' });
 }
 
-async function loginAPP(req, res) {
+/*async function loginAPP(req, res) {
   const { email, senha } = req.body;
   const user = await UserAPP.findOne({ where: { email } });
   if (!user || !(await bcrypt.compare(senha, user.senha))) return res.status(401).json({ error: 'Credenciais inválidas' });
@@ -50,6 +96,23 @@ async function loginAPP(req, res) {
 
   const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
   res.json({ token });
+}*/
+
+async function loginAPP(req, res) {
+  const { email, senha } = req.body;
+
+  const result = pool.query(
+    "SELECT * from userapp WHERE email = $1",
+    [email]
+  );
+
+  const user = result.rows[0];
+
+  if(!user || !(await bcrypt.compare(senha, user.user_password))) return res.status(401).json({ error: 'Credenciais inválidas' });
+    if (!user.verify2fa) return res.status(403).json({ error: '2FA não verificado' });
+  
+    const token = jwt.sign({ id: user.id_user }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
 }
 
 async function editarContaAPP(req, res) {

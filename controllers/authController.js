@@ -10,7 +10,7 @@ const { generate2FACode } = require('../utils/generate2FACode');
 const { send2FACode, transporter } = require('../services/mailService');
 const { generateQRCode, generateQRCodeAsFile } = require('../utils/generateQRCode');
 const QRCodeEntry = require('../models/qrcode');
-import pool from '../db/db';
+const { pool } = require('../db/db');
 
 async function cadastrar(req, res) {
   try {
@@ -55,7 +55,7 @@ async function verificar2FA(req, res) {
     [user.id_user]
   );
 
-  res.json(result.rows[0]);
+  res.json(result.rows[0], env.rows[0]);
 }
 
 async function login(req, res) {
@@ -296,7 +296,6 @@ module.exports = {
   cadastrar,
   verificar2FA,
   login,
-  verConta,
   gerarQRCodeController,
   enviarQrCodeEmail,
   gerarQrCodeComLink,
