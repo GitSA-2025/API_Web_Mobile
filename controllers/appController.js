@@ -8,29 +8,7 @@ const AccessRegister = require('../models/accessRegister');
 const { generate2FACode } = require('../utils/generate2FACode');
 const { send2FACode, transporter } = require('../services/mailService');
 const sql = require('../db/db');
-
-/*async function cadastrarAPP(req, res) {
-  try {
-    const { nome, email, telefone, senha } = req.body;
-    const senhaHash = await bcrypt.hash(senha, 10);
-    const codigo2FA = generate2FACode();
-
-    const user = await UserAPP.create({
-      nome,
-      email,
-      telefone,
-      senha: senhaHash,
-      codigo2FA
-    });
-
-    await send2FACode(email, codigo2FA);
-    res.status(201).json({ message: 'Usuário cadastrado! Verifique o código enviado por e-mail.' });
-  }
-  catch (err) {
-    console.error('Erro no cadastro:', err);
-    res.status(500).json({ error: 'Erro ao cadastrar usuário. Detalhes no terminal.' });
-  }
-}*/
+const { encrypt, decrypt } = require('../lib/crypto.js');
 
 async function cadastrarAPP(req, res) {
   try {
@@ -48,7 +26,7 @@ async function cadastrarAPP(req, res) {
 
     res.status(201).json({
       message: 'Usuário cadastrado! Verifique o código enviado por e-mail.',
-      usuario: result[0], 
+      usuario: result[0],
     });
   } catch (err) {
     console.error('Erro no cadastro:', err);
@@ -57,64 +35,45 @@ async function cadastrarAPP(req, res) {
 }
 
 
-/*async function verificar2FAAPP(req, res) {
-  const { email, codigo } = req.body;
-  const user = await UserAPP.findOne({ where: { email } });
-  if (!user || user.codigo2FA !== codigo) return res.status(400).json({ error: 'Código inválido.' });
-
-  user.verificado2FA = true;
-  await user.save();
-  res.json({ message: '2FA verificado com sucesso!' });
-}*/
-
 async function verificar2FAAPP(req, res) {
   const { email, codigo } = req.body;
-  const result = await pool.query(
-    "SELECT * userapp WHERE email = $1",
-    [email]);
 
-  const user = result.rows[0];
-  
-  if(!user || user.code2fa !== codigo) return
-  res.status(400).json({ error: 'Código inválido.'});
+  const result = await sql`
+  SELECT * FROM userapp WHERE user_email = ${email}`;
 
- const env = await pool.query(
-    "UPDATE userweb SET verify2fa = 'true' WHERE id_user = $1",
-    [user.id_user]
-  );
+  const user = result[0];
 
-  res.json(result.rows[0], env.rows[0]);
+  if (!user || user.code2fa !== codigo) {
+    return res.status(400).json({ error: 'Código inválido.' });
+  }
 
-  res.json({ message: '2FA verificado com sucesso!' });
+
+  const env = await sql`
+  UPDATE userapp SET verify2fa = 'true' WHERE id_user = ${user.id_user} RETURNING *`;
+
+  res.json({
+    message: '2FA verificado com sucesso!',
+    usuario: env[0],
+  });
 }
 
-/*async function loginAPP(req, res) {
-  const { email, senha } = req.body;
-  const user = await UserAPP.findOne({ where: { email } });
-  if (!user || !(await bcrypt.compare(senha, user.senha))) return res.status(401).json({ error: 'Credenciais inválidas' });
-  if (!user.verificado2FA) return res.status(403).json({ error: '2FA não verificado' });
-
-  const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-  res.json({ token });
-}*/
 
 async function loginAPP(req, res) {
   const { email, senha } = req.body;
 
-  const result = pool.query(
-    "SELECT * from userapp WHERE email = $1",
-    [email]
-  );
+  const result = await sql`
+  SELECT * FROM userapp WHERE user_email = ${email}`;
 
-  const user = result.rows[0];
+  const user = result[0];
 
-  if(!user || !(await bcrypt.compare(senha, user.user_password))) return res.status(401).json({ error: 'Credenciais inválidas' });
-    if (!user.verify2fa) return res.status(403).json({ error: '2FA não verificado' });
-  
-    const token = jwt.sign({ id: user.id_user }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token });
+  if (!user || !(await bcrypt.compare(senha, user.user_password))) return res.status(401).json({ error: 'Credenciais inválidas' });
+  if (!user.verify2fa) return res.status(403).json({ error: '2FA não verificado' });
+
+  const token = jwt.sign({ id: user.id_user }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  res.json({ token });
 }
 
+//precisa arrumar
 async function editarContaAPP(req, res) {
   const { nome, email, telefone } = req.body;
   try {
@@ -132,23 +91,20 @@ async function editarContaAPP(req, res) {
 
 async function criarRegistroEntrega(req, res) {
   try {
-    const { nome, telefone, placa, industria } = req.body;
+    const { nome, telefone, placa, industria, n_fiscal } = req.body;
 
     const agora = new Date();
     const data = agora.toISOString().split('T')[0];
     const hrentrada = agora.toTimeString().split(' ')[0];
 
-    const deliveryRegister = await DeliveryRegister.create({
-      nome,
-      telefone,
-      data,
-      hrentrada,
-      placa,
-      industria
+    const result = await sql`
+    INSERT INTO deliveryRegister (name, phone, date, hr_entry, plate_vehicle, industry, n_fiscal) VALUES (${nome}, ${telefone}, ${data}, ${hrentrada}, ${placa}, ${industria}, ${n_fiscal}) RETURNING *`;
+
+
+    res.status(201).json({
+      message: 'Registro cadastrado!',
+      registro_entrega: result[0],
     });
-
-
-    res.status(201).json({ message: 'Entrega registrada com sucesso.', deliveryRegister });
   } catch (err) {
     console.error('Erro no registro de entrega:', err);
     res.status(500).json({ error: 'Erro ao registrar a entrega. Detalhes no terminal.' });
@@ -171,31 +127,22 @@ async function criarRegistroEntrada(req, res) {
       return res.status(400).json({ error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.' });
     }
 
-    const cpfHast = await bcrypt.hash(cpf, 10);
+    const cpfHast = encrypt(cpf);
 
     const agora = new Date();
     const data = agora.toISOString().split('T')[0];
     const hrentrada = agora.toTimeString().split(' ')[0];
 
-    const registro = await AccessRegister.create({
-      nome: nome,
-      cpf: cpfHast,
-      tipo: tipo,
-      data: data,
-      hrentrada: hrentrada,
-      hrsaida: '-',
-      placa: verifPlaca,
-    });
+    const result = await sql`
+    INSERT INTO accessregister (name, cpf, type_person, date, hr_entry, hr_exit, car_plate) 
+    VALUES (${nome}, ${cpfHast}, ${tipo}, ${data}, ${hrentrada}, '-', ${verifPlaca}) RETURNING *`;
+
 
     res.status(201).json({
-      msg: 'Entrada registrada com sucesso!', registro: {
-        id: registro.idRegister,
-        nome: registro.nome,
-        tipo: registro.tipo,
-        data: registro.data,
-        placa: registro.placa,
-      }
-    })
+      message: 'Registro cadastrado!',
+      registro_entrada: result[0],
+    });
+
   }
   catch (err) {
     console.error('Erro ao registro entrada: ', err)
@@ -205,11 +152,10 @@ async function criarRegistroEntrada(req, res) {
 
 async function exbirRegistrosEntrega(req, res) {
   try {
-    const entregas = await DeliveryRegister.findAll({
-      order: [['data', 'ASC'], ['hrentrada', 'ASC']]
-    });
 
-    res.status(200).json(entregas);
+    const result = await sql`SELECT * FROM deliveryRegister ORDER BY date DESC, hr_entry DESC`;
+
+    res.status(200).json(result);
   }
   catch (err) {
     console.error('Erro ao listar entregas:', err);
@@ -219,11 +165,10 @@ async function exbirRegistrosEntrega(req, res) {
 
 async function exbirRegistrosEntrada(req, res) {
   try {
-    const entregas = await AccessRegister.findAll({
-      order: [['data', 'DESC'], ['hrentrada', 'DESC']]
-    });
 
-    res.status(200).json(entregas);
+    const result = await sql`SELECT * FROM accessregister ORDER BY date DESC, hr_entry DESC`;
+
+    res.status(200).json(result);
   }
   catch (err) {
     console.error('Erro ao listar entregas:', err);
@@ -231,6 +176,7 @@ async function exbirRegistrosEntrada(req, res) {
   }
 }
 
+//precisa arrumar
 async function verContaAPP(req, res) {
   try {
     const user = await UserAPP.findByPk(req.userId);
@@ -250,28 +196,24 @@ async function editarRegistroEntrada(req, res) {
   const { nome, tipo, cpf, placa } = req.body;
   const idRegister = req.params.idRegister;
   try {
-    const registro = await AccessRegister.findByPk(idRegister);
-    if (!registro) return res.status(404).json({ error: "Registro de entrada não encontrado." });
-
     const cpfRegex = /^\d{11}$/;
     if (!cpfRegex.test(cpf)) {
       return res.status(400).json({ error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.' });
     }
 
-    const cpfHast = await bcrypt.hash(cpf, 10);
+    const cpfHast = encrypt(cpf);
 
     const verifPlaca = placa && placa.trim() !== '' ? placa.trim() : 'Não se aplica.';
 
-    const agora = new Date();
-    const hrsaida = agora.toTimeString().split(' ')[0];
+    const result = await sql`UPDATE accessregister
+    SET name = ${nome}, type_person = ${tipo}, cpf = ${cpfHast}, car_plate = ${verifPlaca} 
+    WHERE idRegister = ${idRegister} 
+    RETURNING *`;
 
-    registro.nome = nome;
-    registro.tipo = tipo;
-    registro.cpf = cpfHast;
-    registro.placa = verifPlaca;
-    registro.hrsaida = hrsaida;
-    await registro.save();
-    res.json({ message: "Registro de entrada atualizado com sucesso." });
+    res.status(201).json({
+      message: 'Registro atualizado!',
+      usuario: result[0],
+    });
   }
   catch (err) {
     res.status(500).json({ error: "Erro ao atualizar o registro." });
@@ -280,18 +222,20 @@ async function editarRegistroEntrada(req, res) {
 }
 
 async function editarRegistroEntrega(req, res) {
-  const { nome, telefone, placa } = req.body;
+  const { nome, telefone, placa, n_fiscal } = req.body;
   const idRegister = req.params.idRegister;
   try {
-    const registro = await DeliveryRegister.findByPk(idRegister);
-    if (!registro) return res.status(404).json({ error: "Registro de entrada não encontrado." });
 
+    const result = await sql`UPDATE deliveryRegister
+    SET name = ${nome}, phone = ${telefone}, plate_vehicle = ${placa}, n_fiscal = ${n_fiscal} 
+    WHERE idRegister = ${idRegister} 
+    RETURNING *`;
 
-    registro.nome = nome;
-    registro.telefone = telefone;
-    registro.placa = placa;
-    await registro.save();
-    res.json({ message: "Registro de entrada atualizado com sucesso." });
+    res.status(201).json({
+      message: 'Registro atualizado!',
+      usuario: result[0],
+    });
+
   }
   catch (err) {
     res.status(500).json({ error: "Erro ao atualizar o registro." });
@@ -303,20 +247,26 @@ async function exibirRegistroEntradaPorID(req, res) {
   try {
     const { idRegister } = req.params;
 
-    const registro = await AccessRegister.findByPk(idRegister);
+    const result = await sql`
+    SELECT * FROM accessregister 
+    WHERE idRegister = ${idRegister}`;
 
-    if (!registro) {
+    if (!result || result.length === 0) {
       return res.status(404).json({ error: "Registro de entrada não encontrado." });
     }
 
+
+    const cpfVisivel = decrypt(result[0].cpf);
+
     res.status(200).json({
-      idRegister: registro.idRegister,
-      nome: registro.nome,
-      tipo: registro.tipo,
-      data: registro.data,
-      hrentrada: registro.hrentrada,
-      hrsaida: registro.hrsaida,
-      placa: registro.placa
+      idRegister: result[0].idRegister,
+      nome: result[0].name,
+      tipo: result[0].type_person,
+      data: result[0].date,
+      cpf: cpfVisivel,
+      hrentrada: result[0].hr_entry,
+      hrsaida: result[0].hr_exit,
+      placa: result[0].car_plate
     });
   } catch (err) {
     console.error("Erro ao buscar registro de entrada:", err);
@@ -328,24 +278,91 @@ async function exibirRegistroEntregaPorID(req, res) {
   try {
     const { idRegister } = req.params;
 
-    const registro = await DeliveryRegister.findByPk(idRegister);
+    const result = await sql`
+    SELECT * FROM deliveryRegister 
+    WHERE idRegister = ${idRegister}`;
 
-    if (!registro) {
+    if (!result || result.length === 0) {
       return res.status(404).json({ error: "Registro de entrega não encontrado." });
     }
 
+
+
     res.status(200).json({
-      idRegister: registro.idRegister,
-      nome: registro.nome,
-      telefone: registro.telefone,
-      data: registro.data,
-      hrentrada: registro.hrentrada,
-      placa: registro.placa,
-      industria: registro.industria
+      idRegister: result[0].idRegister,
+      nome: result[0].name,
+      telefone: result[0].phone,
+      data: result[0].date,
+      hrentrada: result[0].hr_entry,
+      placa: result[0].plate_vehicle,
+      industria: result[0].industry,
+      n_nota: result[0].n_fiscal,
     });
   } catch (err) {
     console.error("Erro ao buscar registro de entrega:", err);
     res.status(500).json({ error: "Erro ao buscar registro de entrega." });
+  }
+}
+
+async function marcarSaidaRegistroEntrada(req, res) {
+  try {
+    const { idRegister } = req.params;
+
+    const agora = new Date();
+    const hrsaida = agora.toTimeString().split(' ')[0];
+
+    const result = await sql`
+    UPDATE accessregister
+    SET hr_exit = ${hrsaida}
+    WHERE idRegister = ${idRegister} RETURNING *`;
+
+    res.status(201).json({
+      message: 'Saída registrada!',
+      registro_entrada: result[0],
+    });
+
+  }
+  catch (err) {
+    console.error('Erro ao registrar saída: ', err)
+    res.status(500).json({ error: 'Erro ao registrar saída.' + err });
+  }
+}
+
+async function deletarRegistroEntrada(req, res) {
+  try {
+    const { idRegister } = req.params;
+
+    const result = await sql`
+    DELETE FROM accessregister
+    WHERE idRegister = ${idRegister} RETURNING *`;
+
+    res.status(201).json({
+      message: 'Registro deletado!',
+      registro_entrada: result[0],
+    });
+  }
+  catch (err) {
+    console.error('Erro ao deletar registro: ', err)
+    res.status(500).json({ error: 'Erro ao deletar registro.' + err });
+  }
+}
+
+async function deletarRegistroEntrega(req, res) {
+  try {
+    const { idRegister } = req.params;
+
+    const result = await sql`
+    DELETE FROM deliveryRegister
+    WHERE idRegister = ${idRegister} RETURNING *`;
+
+    res.status(201).json({
+      message: 'Registro deletado!',
+      registro_entrada: result[0],
+    });
+  }
+  catch (err) {
+    console.error('Erro ao deletar registro: ', err)
+    res.status(500).json({ error: 'Erro ao deletar registro.' + err });
   }
 }
 
@@ -363,4 +380,7 @@ module.exports = {
   editarRegistroEntrega,
   exibirRegistroEntradaPorID,
   exibirRegistroEntregaPorID,
+  marcarSaidaRegistroEntrada,
+  deletarRegistroEntrada,
+  deletarRegistroEntrega,
 };

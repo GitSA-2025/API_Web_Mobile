@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-    cadastrarAPP,
+  cadastrarAPP,
   loginAPP,
   verificar2FAAPP,
   editarContaAPP,
@@ -13,7 +13,10 @@ const {
   editarRegistroEntrada,
   editarRegistroEntrega,
   exibirRegistroEntradaPorID,
-  exibirRegistroEntregaPorID
+  exibirRegistroEntregaPorID,
+  marcarSaidaRegistroEntrada,
+  deletarRegistroEntrada,
+  deletarRegistroEntrega,
 } = require('../controllers/appController');
 
 const { authMiddleware } = require('../middleware/auth');
@@ -32,4 +35,7 @@ router.post('/app/editarRegistroEntrada/:idRegister', authMiddleware, editarRegi
 router.post('/app/editarRegistroEntrega/:idRegister', authMiddleware, editarRegistroEntrega);
 router.get('/app/exibirEntradas/:idRegister', authMiddleware, exibirRegistroEntradaPorID);
 router.get('/app/exibirEntregas/:idRegister', authMiddleware, exibirRegistroEntregaPorID);
+router.get('/app/marcarSaidaRegistroEntrada/:idRegister', authMiddleware, marcarSaidaRegistroEntrada);
+router.get('/app/deletarRegistroEntrada/:idRegister', authMiddleware, deletarRegistroEntrada);
+router.get('/app/deletarRegistroEntrega/:idRegister', authMiddleware, deletarRegistroEntrega);
 module.exports = router;
