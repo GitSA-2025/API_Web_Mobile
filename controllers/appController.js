@@ -91,26 +91,19 @@ async function editarContaAPP(req, res) {
 
 async function criarRegistroEntrega(req, res) {
   try {
-    const { nome, telefone, placa, fornecedor, nNota } = req.body;
+    const { nome, telefone, placa, industria, n_fiscal } = req.body;
 
     console.log("📦 Dados recebidos:", req.body);
-
-    const industria = fornecedor ?? null;
-    const n_fiscal = nNota ?? null;
 
     const agora = new Date();
     const data = agora.toISOString().split('T')[0];
     const hrentrada = agora.toTimeString().split(' ')[0];
 
-    const nomeVal = nome ?? null;
-    const telefoneVal = telefone ?? null;
-    const placaVal = placa ?? null;
-
     const result = await sql`
       INSERT INTO deliveryRegister
         (name, phone, date, hr_entry, plate_vehicle, industry, n_fiscal)
       VALUES
-        (${nomeVal}, ${telefoneVal}, ${data}, ${hrentrada}, ${placaVal}, ${industria}, ${n_fiscal})
+        (${nome}, ${telefone}, ${data}, ${hrentrada}, ${placa}, ${industria}, ${n_fiscal})
       RETURNING *;
     `;
 
