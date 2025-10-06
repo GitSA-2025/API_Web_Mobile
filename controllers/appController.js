@@ -189,6 +189,8 @@ async function exbirRegistrosEntrada(req, res) {
 
     const { user_email } = req.body;
 
+    console.log(user_email);
+
     const user = await sql`SELECT * FROM userapp WHERE user_email = ${user_email}`;
 
     const dados_user = user[0];
