@@ -91,9 +91,9 @@ async function editarContaAPP(req, res) {
 
 async function criarRegistroEntrega(req, res) {
   try {
-    const { nome, telefone, placa, industria, n_fiscal } = req.body;
-
-    console.log("📦 Dados recebidos:", req.body);
+    const { nome, telefone, placa, fornecedor, nNota } = req.body;
+    const industria = fornecedor;
+    const n_fiscal = nNota;
 
     const agora = new Date();
     const data = agora.toISOString().split('T')[0];
