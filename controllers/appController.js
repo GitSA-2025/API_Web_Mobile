@@ -91,19 +91,23 @@ async function editarContaAPP(req, res) {
 
 async function criarRegistroEntrega(req, res) {
   try {
-    const { nome, telefone, placa, industria, n_fiscal } = req.body;
+    const { nome, telefone, placa, industria, n_fiscal, user_email } = req.body;
 
-    console.log("📦 Dados recebidos:", req.body);
+    console.log("Dados recebidos:", req.body);
 
     const agora = new Date();
     const data = agora.toISOString().split('T')[0];
     const hrentrada = agora.toTimeString().split(' ')[0];
 
+    const user = await sql`SELECT * FROM userapp WHERE user_email = ${user_email}`;
+
+    const dados_user = user[0];
+
     const result = await sql`
       INSERT INTO deliveryRegister
-        (name, phone, date, hr_entry, plate_vehicle, industry, n_fiscal)
+        (name, phone, date, hr_entry, plate_vehicle, industry, n_fiscal, iduser)
       VALUES
-        (${nome}, ${telefone}, ${data}, ${hrentrada}, ${placa}, ${industria}, ${n_fiscal})
+        (${nome}, ${telefone}, ${data}, ${hrentrada}, ${placa}, ${industria}, ${n_fiscal}, ${dados_user.id_user})
       RETURNING *;
     `;
 
@@ -120,7 +124,7 @@ async function criarRegistroEntrega(req, res) {
 
 async function criarRegistroEntrada(req, res) {
   try {
-    const { nome, tipo, cpf, placa } = req.body;
+    const { nome, tipo, cpf, placa, user_email } = req.body;
 
     if (!nome || !tipo || !cpf) {
       return res.status(400).json({ error: 'Nome, tipo de pessoa e CPF estão em branco. Preencha os campos corretamente.' });
@@ -139,9 +143,14 @@ async function criarRegistroEntrada(req, res) {
     const data = agora.toISOString().split('T')[0];
     const hrentrada = agora.toTimeString().split(' ')[0];
 
+    const user = await sql`SELECT * FROM userapp WHERE user_email = ${user_email}`;
+
+    const dados_user = user[0];
+
+
     const result = await sql`
-    INSERT INTO accessregister (name, cpf, type_person, date, hr_entry, hr_exit, car_plate, status) 
-    VALUES (${nome}, ${cpfHast}, ${tipo}, ${data}, ${hrentrada}, '-', ${verifPlaca}, 'Liberado') RETURNING *`;
+    INSERT INTO accessregister (name, cpf, type_person, date, hr_entry, hr_exit, car_plate, status, iduser) 
+    VALUES (${nome}, ${cpfHast}, ${tipo}, ${data}, ${hrentrada}, '-', ${verifPlaca}, 'Liberado', ${dados_user.id_user}) RETURNING *`;
 
 
     res.status(201).json({
@@ -159,7 +168,13 @@ async function criarRegistroEntrada(req, res) {
 async function exbirRegistrosEntrega(req, res) {
   try {
 
-    const result = await sql`SELECT * FROM deliveryRegister ORDER BY date DESC, hr_entry DESC`;
+    const { user_email } = req.body;
+
+    const user = await sql`SELECT * FROM userapp WHERE user_email = ${user_email}`;
+
+    const dados_user = user[0];
+
+    const result = await sql`SELECT * FROM deliveryRegister WHERE iduser = ${dados_user.id_user} ORDER BY date DESC, hr_entry DESC `;
 
     res.status(200).json(result);
   }
@@ -172,7 +187,13 @@ async function exbirRegistrosEntrega(req, res) {
 async function exbirRegistrosEntrada(req, res) {
   try {
 
-    const result = await sql`SELECT * FROM accessregister ORDER BY date DESC, hr_entry DESC`;
+    const { user_email } = req.body;
+
+    const user = await sql`SELECT * FROM userapp WHERE user_email = ${user_email}`;
+
+    const dados_user = user[0];
+
+    const result = await sql`SELECT * FROM accessregister WHERE iduser = ${dados_user.id_user} ORDER BY date DESC, hr_entry DESC`;
 
     res.status(200).json(result);
   }
