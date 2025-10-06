@@ -140,8 +140,8 @@ async function criarRegistroEntrada(req, res) {
     const hrentrada = agora.toTimeString().split(' ')[0];
 
     const result = await sql`
-    INSERT INTO accessregister (name, cpf, type_person, date, hr_entry, hr_exit, car_plate) 
-    VALUES (${nome}, ${cpfHast}, ${tipo}, ${data}, ${hrentrada}, '-', ${verifPlaca}) RETURNING *`;
+    INSERT INTO accessregister (name, cpf, type_person, date, hr_entry, hr_exit, car_plate, status) 
+    VALUES (${nome}, ${cpfHast}, ${tipo}, ${data}, ${hrentrada}, '-', ${verifPlaca}, 'Liberado') RETURNING *`;
 
 
     res.status(201).json({
