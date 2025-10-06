@@ -93,6 +93,8 @@ async function criarRegistroEntrega(req, res) {
   try {
     const { nome, telefone, placa, industria, n_fiscal } = req.body;
 
+    console.log("📦 Dados recebidos:", req.body);
+
     const agora = new Date();
     const data = agora.toISOString().split('T')[0];
     const hrentrada = agora.toTimeString().split(' ')[0];
