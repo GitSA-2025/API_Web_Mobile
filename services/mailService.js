@@ -6,7 +6,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 async function send2FACode(email, code) {
   try {
     const response = await resend.emails.send({
-      from: 'Sistema SA <accesssystemfatec@gmail.com>',
+      from: 'Sistema SA <no-reply@resend.dev>',
       to: email,
       subject: `${code} - Seu código de verificação do Sistema de Acesso/Crachá Online`,
       html: `
