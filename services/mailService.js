@@ -13,6 +13,10 @@ async function send2FACode(email, code) {
     console.log("EMAIL:", process.env.EMAIL_USER);
     console.log("SENHA:", process.env.EMAIL_PASS ? "OK" : "VAZIA");
 
+    await transporter.verify()
+  .then(() => console.log("✅ SMTP conectado com sucesso"))
+  .catch(err => console.error("❌ Falha ao conectar SMTP:", err));
+    
     await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: email,
