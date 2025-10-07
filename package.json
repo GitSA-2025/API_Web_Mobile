@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/GitSA-2025/API_Web#readme",
   "dependencies": {
+    "@getbrevo/brevo": "^3.0.1",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
