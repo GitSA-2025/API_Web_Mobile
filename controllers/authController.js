@@ -17,27 +17,19 @@ async function cadastrar(req, res) {
   try {
     const { nome, cpf, email, telefone, senha, tipo } = req.body;
     const senhaHash = await bcrypt.hash(senha, 10);
-    const cpfHash = await bcrypt.hash(cpf, 10);
     const codigo2FA = generate2FACode();
+    const cpfHast = encrypt(cpf);
 
     const result = await sql`
       INSERT INTO userweb (name, cpf, user_email, phone, user_password, type_user, code2fa) 
-      VALUES ($nome, $2, $3, $4, $5, $6) RETURNING *`;
-      [nome, cpfHash, email, telefone, senhaHash, codigo2FA]
-    );
-    
-    const result = await sql`
-      INSERT INTO userapp (name, user_email, phone, user_password, code2fa)
-      VALUES (${nome}, ${email}, ${telefone}, ${senhaHash}, ${codigo2FA})
-      RETURNING *
-    `;
+      VALUES (${nome}, ${cpfHash}, ${email}, ${telefone}, ${senhaHash}, ${codigo2FA}) RETURNING *`;
 
     await send2FACode(email, codigo2FA);
     res.status(201).json({
       message: 'Usuário cadastrado! Verifique o código enviado por e-mail.'
     });
 
-    res.json(result.rows[0]);
+    res.json(result[0]);
   }
   catch (err) {
     console.error('Erro no cadastro: ', err);
@@ -49,30 +41,26 @@ async function cadastrar(req, res) {
 
 async function verificar2FA(req, res) {
   const { email, codigo } = req.body;
-  const result = await pool.query(
-    "SELECT * userweb WHERE email = $1",
-  [email]);
+  const result = await sql`
+    SELECT * userweb WHERE email = ${email}`;
 
-  const user = result.rows[0];
+  const user = result[0];
   
   if(!user || user.code2fa !== codigo) return
   res.status(400).json({ error: 'Código inválido.'});
   
-  const env = await pool.query(
-    "UPDATE userweb SET verify2fa = 'true' WHERE id_user = $1",
-    [user.id_user]
-  );
+  const env = await sql`
+    UPDATE userweb SET verify2fa = 'true' WHERE id_user = ${user.id_user};`
 
-  res.json(result.rows[0], env.rows[0]);
+  res.json(result[0], env[0]);
 }
 
 async function login(req, res) {
   const { email, senha } = req.body;
-  const result = await pool.query(
-    "SELECT * userweb WHERE email = $1",
-  [email]);
+  const result = await sql`
+    SELECT * userweb WHERE email = ${email}`;
 
-  const user = result.rows[0];
+  const user = result[0];
 
   if(!user || !(await bcrypt.compare(senha, user.user_password))) return res.status(401).json({ error: 'Credenciais inválidas' });
   if (!user.verify2fa) return res.status(403).json({ error: '2FA não verificado' });
