@@ -9,7 +9,8 @@ const {
     gerarQrCodeComLink,
     editarPerfil,
     trocarSenha,
-    enviarQrCodeWhatsapp
+    enviarQrCodeWhatsapp,
+    verConta
 } = require('../controllers/authController');
 const QRCodeEntry = require('../models/qrcode');
 
