@@ -20,10 +20,17 @@ async function cadastrar(req, res) {
     const cpfHash = await bcrypt.hash(cpf, 10);
     const codigo2FA = generate2FACode();
 
-    const result = await pool.query(
-      "INSERT INTO userweb (name, cpf, user_email, phone, user_password, type_user, code2fa) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+    const result = await sql`
+      INSERT INTO userweb (name, cpf, user_email, phone, user_password, type_user, code2fa) 
+      VALUES ($nome, $2, $3, $4, $5, $6) RETURNING *`;
       [nome, cpfHash, email, telefone, senhaHash, codigo2FA]
     );
+    
+    const result = await sql`
+      INSERT INTO userapp (name, user_email, phone, user_password, code2fa)
+      VALUES (${nome}, ${email}, ${telefone}, ${senhaHash}, ${codigo2FA})
+      RETURNING *
+    `;
 
     await send2FACode(email, codigo2FA);
     res.status(201).json({
