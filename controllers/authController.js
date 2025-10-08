@@ -22,7 +22,7 @@ async function cadastrar(req, res) {
 
     const result = await sql`
       INSERT INTO userweb (name, cpf, user_email, phone, user_password, type_user, code2fa) 
-      VALUES (${nome}, ${cpfHast}, ${email}, ${telefone}, ${senhaHash}, ${codigo2FA}) RETURNING *`;
+      VALUES (${nome}, ${cpfHast}, ${email}, ${telefone}, ${senhaHash}, 'visitante', ${codigo2FA}) RETURNING *`;
 
     await send2FACode(email, codigo2FA);
     res.status(201).json({
