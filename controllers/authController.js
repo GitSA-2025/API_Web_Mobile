@@ -69,6 +69,23 @@ async function login(req, res) {
   res.json({ token });
 }
 
+async function verConta(req, res) {
+  try {
+
+    const { user_email } = req.params;
+
+    const user = await sql`SELECT * FROM userapp WHERE user_email = ${user_email}`;
+
+    const dados_user = user[0];
+
+    res.status(200).json(user);
+  }
+  catch (err) {
+    console.error('Erro ao listar entregas:', err);
+    res.status(500).json({ error: 'Erro ao listar entregas.' });
+  }
+}
+
 /*async function gerarQRCodeController(req, res) {
   const user = await User.findByPk(req.userId);
 
