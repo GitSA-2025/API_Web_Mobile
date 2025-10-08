@@ -40,9 +40,10 @@ async function cadastrar(req, res) {
 
 
 async function verificar2FA(req, res) {
-  const { email, codigo } = req.body;
+  const user_email = req.body.user_email || req.body.email;
+  const code = req.body.code || req.body.codigo;
   const result = await sql`
-    SELECT * FROM userweb WHERE user_email = ${email}`;
+    SELECT * FROM userweb WHERE user_email = ${user_email}`;
 
   const user = result[0];
   
