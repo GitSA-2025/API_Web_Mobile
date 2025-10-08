@@ -58,7 +58,7 @@ async function verificar2FA(req, res) {
 async function login(req, res) {
   const { email, senha } = req.body;
   const result = await sql`
-    SELECT * userweb WHERE email = ${email}`;
+    SELECT * FROM userweb WHERE email = ${email}`;
 
   const user = result[0];
 
