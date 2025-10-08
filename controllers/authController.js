@@ -314,5 +314,6 @@ module.exports = {
   gerarQrCodeComLink,
   enviarQrCodeWhatsapp,
   editarPerfil,
-  trocarSenha
+  trocarSenha,
+  verConta
 };
