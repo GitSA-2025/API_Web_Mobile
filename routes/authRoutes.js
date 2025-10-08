@@ -18,7 +18,7 @@ const { authMiddleware } = require('../middleware/auth');
 router.post('/cadastrar', cadastrar);
 router.post('/verificar-2fa', verificar2FA);
 router.post('/login', login);
-//router.get('/conta', authMiddleware, verConta);
+router.get('/conta', authMiddleware, verConta);
 router.get('/gerar-qrcode', authMiddleware, gerarQRCodeController);
 router.post('/enviar-qrcode-email', authMiddleware, enviarQrCodeEmail);
 router.get('/gerar-qrcode-link', authMiddleware, gerarQrCodeComLink);
