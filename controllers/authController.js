@@ -10,7 +10,8 @@ const { generate2FACode } = require('../utils/generate2FACode');
 const { send2FACode, transporter } = require('../services/mailService');
 const { generateQRCode, generateQRCodeAsFile } = require('../utils/generateQRCode');
 const QRCodeEntry = require('../models/qrcode');
-const { pool } = require('../db/db');
+const sql = require('../db/db');
+const { encrypt, decrypt } = require('../lib/crypto.js');
 
 async function cadastrar(req, res) {
   try {
