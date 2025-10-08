@@ -26,10 +26,10 @@ async function cadastrar(req, res) {
 
     await send2FACode(email, codigo2FA);
     res.status(201).json({
-      message: 'Usuário cadastrado! Verifique o código enviado por e-mail.'
-    });
+  message: 'Usuário cadastrado! Verifique o código enviado por e-mail.',
+  user: result[0]
+});
 
-    res.json(result[0]);
   }
   catch (err) {
     console.error('Erro no cadastro: ', err);
@@ -37,24 +37,29 @@ async function cadastrar(req, res) {
   }
 }
 
-
-
 async function verificar2FA(req, res) {
-  const user_email = req.body.user_email || req.body.email;
-  const code = req.body.code || req.body.codigo;
-  const result = await sql`
-    SELECT * FROM userweb WHERE user_email = ${user_email}`;
+  try {
+    const user_email = req.body.user_email || req.body.email;
+    const code = req.body.code || req.body.codigo;
 
-  const user = result[0];
-  
-  if(!user || user.code2fa !== codigo) return
-  res.status(400).json({ error: 'Código inválido.'});
-  
-  const env = await sql`
-    UPDATE userweb SET verify2fa = 'true' WHERE id_user = ${user.id_user};`
+    const result = await sql`
+      SELECT * FROM userweb WHERE user_email = ${user_email}`;
+    const user = result[0];
 
-  res.json(result[0], env[0]);
+    if (!user || user.code2fa !== code) {
+      return res.status(400).json({ error: 'Código inválido ou expirado.' });
+    }
+
+    await sql`
+      UPDATE userweb SET verify2fa = true WHERE id_user = ${user.id_user};`;
+
+    return res.status(200).json({ message: '2FA verificado com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao verificar 2FA:', err);
+    return res.status(500).json({ error: 'Erro interno ao verificar 2FA.' });
+  }
 }
+
 
 async function login(req, res) {
   const { email, senha } = req.body;
