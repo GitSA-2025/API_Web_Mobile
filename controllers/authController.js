@@ -78,7 +78,7 @@ async function verConta(req, res) {
 
     const dados_user = user[0];
 
-    res.status(200).json(user);
+    res.status(200).json(dados_user);
   }
   catch (err) {
     console.error('Erro ao listar entregas:', err);
