@@ -71,18 +71,37 @@ async function login(req, res) {
 
 async function verConta(req, res) {
   try {
-
     const { user_email } = req.params;
 
-    const user = await sql`SELECT * FROM userapp WHERE user_email = ${user_email}`;
+    const result = await sql`SELECT * FROM userweb WHERE user_email = ${user_email}`;
 
-    const dados_user = user[0];
+    const dados_user = result[0];
 
-    res.status(200).json(dados_user);
+    if (!dados_user) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+    try {
+      if (dados_user.cpf) {
+        dados_user.cpf = decrypt(dados_user.cpf);
+      }
+    } catch (err) {
+      console.warn("Não foi possível descriptografar o CPF:", err);
+
+    const payload = {
+      id_user: dados_user.id_user,
+      name: dados_user.name,
+      cpf: dados_user.cpf,
+      user_email: dados_user.user_email,
+      phone: dados_user.phone,
+      type_user: dados_user.type_user,
+      verify2fa: dados_user.verify2fa
+    };
+
+    res.status(200).json(payload);
   }
   catch (err) {
-    console.error('Erro ao listar entregas:', err);
-    res.status(500).json({ error: 'Erro ao listar entregas.' });
+    console.error('Erro ao buscar conta:', err);
+    res.status(500).json({ error: 'Erro ao buscar conta.' });
   }
 }
 
