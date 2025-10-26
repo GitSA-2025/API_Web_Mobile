@@ -395,6 +395,93 @@ async function deletarRegistroEntrega(req, res) {
   }
 }
 
+async function getUserByEmail(user_email) {
+  const user = await sql`SELECT * FROM userapp WHERE user_email = ${user_email}`;
+  return user[0];
+}
+
+async function filtrarEntregas(req, res) {
+  try {
+    const { user_email, filtro } = req.body;
+
+    const dados_user = await getUserByEmail(user_email);
+    if (!dados_user) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+
+    let orderBy = 'ORDER BY date DESC, hr_entry DESC'; // padrão
+
+    switch (filtro) {
+      case 'data_crescente':
+        orderBy = 'ORDER BY date ASC';
+        break;
+      case 'data_decrescente':
+        orderBy = 'ORDER BY date DESC';
+        break;
+      case 'hora_crescente':
+        orderBy = 'ORDER BY date DESC, hr_entry ASC';
+        break;
+      case 'hora_decrescente':
+        orderBy = 'ORDER BY date DESC, hr_entry DESC';
+        break;
+      default:
+        break;
+    }
+
+    const result = await sql.unsafe(
+      `SELECT * FROM deliveryRegister WHERE iduser = $1 ${orderBy}`,
+      [dados_user.id_user]
+    );
+
+    res.status(200).json(result);
+
+  } catch (err) {
+    console.error('Erro ao listar entregas:', err);
+    res.status(500).json({ error: 'Erro ao listar entregas.' });
+  }
+}
+
+async function filtrarEntradas(req, res) {
+  try {
+    const { user_email, filtro } = req.body;
+
+    const dados_user = await getUserByEmail(user_email);
+    if (!dados_user) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+
+    let orderBy = 'ORDER BY date DESC, hr_entry DESC'; // padrão
+
+    switch (filtro) {
+      case 'data_crescente':
+        orderBy = 'ORDER BY date ASC';
+        break;
+      case 'data_decrescente':
+        orderBy = 'ORDER BY date DESC';
+        break;
+      case 'hora_crescente':
+        orderBy = 'ORDER BY date DESC, hr_entry ASC';
+        break;
+      case 'hora_decrescente':
+        orderBy = 'ORDER BY date DESC, hr_entry DESC';
+        break;
+      default:
+        break;
+    }
+
+    const result = await sql.unsafe(
+      `SELECT * FROM accessRegister WHERE iduser = $1 ${orderBy}`,
+      [dados_user.id_user]
+    );
+
+    res.status(200).json(result);
+
+  } catch (err) {
+    console.error('Erro ao listar entregas:', err);
+    res.status(500).json({ error: 'Erro ao listar entregas.' });
+  }
+}
+
 module.exports = {
   cadastrarAPP,
   loginAPP,
@@ -412,4 +499,6 @@ module.exports = {
   marcarSaidaRegistroEntrada,
   deletarRegistroEntrada,
   deletarRegistroEntrega,
+  filtrarEntregas,
+
 };
