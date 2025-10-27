@@ -517,12 +517,14 @@ async function geradorDeGraficoIA(req, res) {
       Retorne APENAS o JSON puro, sem explicações.
     `;
 
+    const token_hf = process.env.TOKEN_HF;
+
     const hfResponse = await axios.post(
       "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
       { inputs: prompt },
       {
         headers: {
-          Authorization: "Bearer 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",
+          Authorization: `Bearer ${token_hf}`,
         },
       }
     );
