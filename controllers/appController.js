@@ -105,9 +105,9 @@ async function criarRegistroEntrega(req, res) {
 
     const result = await sql`
       INSERT INTO deliveryRegister
-        (name, phone, date, hr_entry, plate_vehicle, industry, n_fiscal, iduser)
+        (name, phone, date, hr_entry, plate_vehicle, industry, n_fiscal, iduser, type)
       VALUES
-        (${nome}, ${telefone}, ${data}, ${hrentrada}, ${placa}, ${industria}, ${n_fiscal}, ${dados_user.id_user})
+        (${nome}, ${telefone}, ${data}, ${hrentrada}, ${placa}, ${industria}, ${n_fiscal}, ${dados_user.id_user}, 'entregador')
       RETURNING *;
     `;
 
@@ -482,6 +482,75 @@ async function filtrarEntradas(req, res) {
   }
 }
 
+async function geradorDeGraficoIA(req, res) {
+  try {
+    const { dataInicio, dataFim } = req.body;
+
+    const inicio = dataInicio;
+    const fim = dataFim;
+
+    const access = await sql`
+      SELECT type, date
+      FROM accessregister
+      WHERE date BETWEEN ${inicio} AND ${fim}`;
+
+      const deliveries = await sql`
+      SELECT 'entregador' AS type, date
+      FROM deliveryregister
+      WHERE date BETWEEN ${inicio} AND ${fim}
+    `;
+
+    const todosDados = [...access.rows, ...deliveries.rows];
+
+    const prompt = `
+      Você é uma IA especialista em análise de dados.
+      Gere um JSON de gráfico de barras agrupando os seguintes dados de acessos:
+      ${JSON.stringify(todosDados)}
+
+      O JSON deve conter o total de registros de cada tipo de pessoa:
+      [
+        { "label": "colaborador", "value": X },
+        { "label": "visitante", "value": Y },
+        { "label": "entregador", "value": Z }
+      ]
+
+      Retorne APENAS o JSON puro, sem explicações.
+    `;
+
+    const hfResponse = await axios.post(
+      "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
+      { inputs: prompt },
+      {
+        headers: {
+          Authorization: "Bearer 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",
+        },
+      }
+    );
+
+    const respostaIA = hfResponse.data[0]?.generated_text || "[]";
+    let grafico;
+    try {
+      grafico = JSON.parse(respostaIA.match(/\[.*\]/s)[0]);
+    } catch {
+      grafico = [
+        { label: "colaborador", value: 0 },
+        { label: "visitante", value: 0 },
+        { label: "entregador", value: 0 },
+      ];
+    }
+
+    res.status(200).json({
+      periodo: `${inicio} a ${fim}`,
+      grafico,
+      totalRegistros: todosDados.length,
+    });
+  } catch (err) {
+    console.error("Erro ao gerar gráfico com IA:", err);
+    res.status(500).json({ erro: "Falha ao gerar gráfico com IA." });
+  }
+
+}
+
 module.exports = {
   cadastrarAPP,
   loginAPP,
@@ -500,5 +569,6 @@ module.exports = {
   deletarRegistroEntrada,
   deletarRegistroEntrega,
   filtrarEntregas,
-
+  filtrarEntradas,
+  geradorDeGraficoIA
 };

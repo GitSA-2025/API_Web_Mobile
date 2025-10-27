@@ -17,6 +17,9 @@ const {
   marcarSaidaRegistroEntrada,
   deletarRegistroEntrada,
   deletarRegistroEntrega,
+  geradorDeGraficoIA,
+  filtrarEntradas,
+  filtrarEntregas
 } = require('../controllers/appController');
 
 const { authMiddleware } = require('../middleware/auth');
@@ -38,4 +41,7 @@ router.get('/app/exibirEntregas/:idRegister', authMiddleware, exibirRegistroEntr
 router.get('/app/marcarSaidaRegistroEntrada/:idRegister', authMiddleware, marcarSaidaRegistroEntrada);
 router.get('/app/deletarRegistroEntrada/:idRegister', authMiddleware, deletarRegistroEntrada);
 router.get('/app/deletarRegistroEntrega/:idRegister', authMiddleware, deletarRegistroEntrega);
+router.post('/app/filtrarEntregas', authMiddleware, filtrarEntregas);
+router.post('/app/filtrarEntradas', authMiddleware, filtrarEntradas);
+router.post('/app/gerarGraficoIA', authMiddleware, geradorDeGraficoIA);
 module.exports = router;
