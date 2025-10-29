@@ -575,7 +575,7 @@ async function aprovacaoQRCode(req, res) {
   try {
     const { user_email, decisao } = req.body;
 
-    const { id_requester } = req.params;
+    const { id_request } = req.params;
 
     const dados_user = await getUserByEmail(user_email);
     if (!dados_user) {
@@ -584,7 +584,7 @@ async function aprovacaoQRCode(req, res) {
 
     const result = await sql`UPDATE qrcodes_requets
     SET id_approver = ${dados_user.id_user}, status = ${decisao}
-    WHERE id = ${id_requester}`;
+    WHERE id = ${id_request}`;
 
     res.status(201).json({
       message: 'Status alterado com sucesso!',
