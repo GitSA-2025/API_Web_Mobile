@@ -21,7 +21,7 @@ router.post('/cadastrar', cadastrar);
 router.post('/verificar-2fa', verificar2FA);
 router.post('/login', login);
 router.get('/conta/:user_email', authMiddleware, verConta);
-router.get('/gerar-qrcode', authMiddleware, gerarQRCodeController);
+router.get('/gerar-qrcode/:user_email', authMiddleware, gerarQRCodeController);
 router.post('/enviar-qrcode-email', authMiddleware, enviarQrCodeEmail);
 router.get('/gerar-qrcode-link', authMiddleware, gerarQrCodeComLink);
 router.put('/editar-perfil', authMiddleware, editarPerfil);
