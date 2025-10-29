@@ -573,7 +573,9 @@ async function geradorDeGraficoIA(req, res) {
 async function aprovacaoQRCode(req, res) {
 
   try {
-    const { user_email, decisao, id_request } = req.body;
+    const { user_email, decisao } = req.body;
+
+    const { id_request } = req.params;
 
     const dados_user = await getUserByEmail(user_email);
     if (!dados_user) {

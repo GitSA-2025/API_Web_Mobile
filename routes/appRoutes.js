@@ -19,7 +19,9 @@ const {
   deletarRegistroEntrega,
   geradorDeGraficoIA,
   filtrarEntradas,
-  filtrarEntregas
+  filtrarEntregas,
+  aprovacaoQRCode,
+  verSolicitacoes
 } = require('../controllers/appController');
 
 const { authMiddleware } = require('../middleware/auth');
@@ -44,4 +46,6 @@ router.get('/app/deletarRegistroEntrega/:idRegister', authMiddleware, deletarReg
 router.post('/app/filtrarEntregas', authMiddleware, filtrarEntregas);
 router.post('/app/filtrarEntradas', authMiddleware, filtrarEntradas);
 router.post('/app/gerarGraficoIA', authMiddleware, geradorDeGraficoIA);
+router.post('/app/aprovQrCode/:id_request', authMiddleware, aprovacaoQRCode);
+router.get('/app/verSolic', authMiddleware, verSolicitacoes);
 module.exports = router;
