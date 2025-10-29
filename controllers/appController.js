@@ -168,7 +168,7 @@ async function criarRegistroEntrada(req, res) {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false 
+      hour12: false
     });
 
     const [data_formatada_hora, hora_completa] = agora_brasil.split(', ');
@@ -177,7 +177,7 @@ async function criarRegistroEntrada(req, res) {
     const data_formatada = data_formatada_hora.replace(/\//g, '-');
 
 
-    const hrentrada = hora_completa.split(':').slice(0, 3).join(':'); 
+    const hrentrada = hora_completa.split(':').slice(0, 3).join(':');
 
     const user = await sql`SELECT * FROM userapp WHERE user_email = ${user_email}`;
 
@@ -376,16 +376,16 @@ async function exibirRegistroEntregaPorID(req, res) {
 async function marcarSaidaRegistroEntrada(req, res) {
   try {
     const { idRegister } = req.params;
-    
+
     const agora_brasil = new Date().toLocaleTimeString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false 
+      hour12: false
     });
 
-    const hrsaida = agora_brasil; 
+    const hrsaida = agora_brasil;
 
     const result = await sql`
       UPDATE accessregister
@@ -568,6 +568,36 @@ async function geradorDeGraficoIA(req, res) {
     res.status(500).json({ erro: "Erro interno ao gerar gráfico com IA" });
   }
 
+}
+
+async function aprovacaoQRCode(req, res) {
+
+  try {
+    const { user_email, decisao, id_request } = req.body;
+
+    const dados_user = await getUserByEmail(user_email);
+    if (!dados_user) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+
+    const result = await sql`UPDATE qrcodes_requets
+    SET id_approver = ${dados_user.id_user}, status = ${decisao}
+    WHERE id = ${id_request}`;
+    
+          res.status(201).json({
+            message: 'Status alterado com sucesso!',
+            solicitacao: result[0]
+          });
+
+
+  }
+  catch(err){
+    res.status(500).json({ error: "Erro ao alterar os status." });
+    console.log(err);
+  }
+
+  
+  
 }
 
 module.exports = {

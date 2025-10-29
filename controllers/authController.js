@@ -26,9 +26,9 @@ async function cadastrar(req, res) {
 
     await send2FACode(email, codigo2FA);
     res.status(201).json({
-  message: 'Usuário cadastrado! Verifique o código enviado por e-mail.',
-  user: result[0]
-});
+      message: 'Usuário cadastrado! Verifique o código enviado por e-mail.',
+      user: result[0]
+    });
 
   }
   catch (err) {
@@ -68,7 +68,7 @@ async function login(req, res) {
 
   const user = result[0];
 
-  if(!user || !(await bcrypt.compare(senha, user.user_password))) return res.status(401).json({ error: 'Credenciais inválidas' });
+  if (!user || !(await bcrypt.compare(senha, user.user_password))) return res.status(401).json({ error: 'Credenciais inválidas' });
   if (!user.verify2fa) return res.status(403).json({ error: '2FA não verificado' });
 
   const token = jwt.sign({ id: user.id_user }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -79,7 +79,7 @@ async function verConta(req, res) {
   try {
     const { user_email } = req.params;
 
-    
+
     const result = await sql`SELECT * FROM userweb WHERE user_email = ${user_email}`;
     const dados_user = result[0];
 
@@ -87,7 +87,7 @@ async function verConta(req, res) {
       return res.status(404).json({ error: "Usuário não encontrado." });
     }
 
-    
+
     if (dados_user.cpf) {
       try {
         dados_user.cpf = decrypt(dados_user.cpf);
@@ -96,7 +96,7 @@ async function verConta(req, res) {
       }
     }
 
-    
+
     const payload = {
       id_user: dados_user.id_user,
       name: dados_user.name,
@@ -115,37 +115,71 @@ async function verConta(req, res) {
   }
 }
 
-/*async function gerarQRCodeController(req, res) {
-  const user = await User.findByPk(req.userId);
-
-  const qrEntry = await QRCodeEntry.create({
-    userId: user.id,
-    expiresAt: new Date(Date.now() + 45 * 60 * 1000)
-  });
-
-  const data = {
-    qrId: qrEntry.id,
-    nome: user.nome,
-    cpf: user.cpf,
-    email: user.email,
-    telefone: user.telefone,
-    tipo: user.tipo
-  };
-
-  const qrCode = await generateQRCode(data);
-  res.json({ qrCode });
-}
-*/
-
 async function gerarQRCodeController(req, res) {
-  const result = await pool.query(
-    "SELECT * userweb WHERE id_user = $1",
-  [req.userId]);
+  try {
+    const { user_email } = req.params;
 
-  const user = result.rows[0];
+    const result = await sql`SELECT * FROM userweb WHERE user_email = ${user_email}`;
+    const dados_user = result[0];
 
-  //const qrEntry = await
+    if (!dados_user) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+
+    if (dados_user.cpf) {
+      try {
+        dados_user.cpf = decrypt(dados_user.cpf);
+      } catch (err) {
+        console.warn("Não foi possível descriptografar o CPF:", err);
+      }
+    }
+
+    const query = await sql`
+        SELECT * FROM qrcode_requests
+        WHERE id_requester = ${dados_user.id_user}
+        ORDER BY created_at DESC -- Supondo que você tem uma coluna 'created_at'
+        LIMIT 1
+    `;
+    const rst = query[0];
+
+    if (!rst) {
+        return res.status(403).json({ error: "Nenhuma solicitação de QR Code encontrada. Por favor, solicite primeiro." });
+    }
+
+    if (rst.status === 'aprovado') {
+        const payload = {
+            id_user: dados_user.id_user,
+            name: dados_user.name,
+            cpf: dados_user.cpf,
+            user_email: dados_user.user_email,
+            phone: dados_user.phone,
+            type_user: dados_user.type_user,
+            verify2fa: dados_user.verify2fa
+        };
+
+        const qrCode = await generateQRCode(payload);
+        
+        await sql`DELETE FROM qrcode_requests WHERE id_requester = ${dados_user.id_user}`;
+        
+        return res.json({ qrCode, status: 'aprovado' });
+        
+    } else if (rst.status === 'pendente') {
+        return res.status(200).json({ status: 'pendente', message: "Solicitação pendente de aprovação do porteiro." });
+        
+    } else if (rst.status === 'negado') {
+        await sql`DELETE FROM qrcode_requests WHERE id_requester = ${dados_user.id_user}`;
+        return res.status(403).json({ status: 'negado', error: "Sua solicitação foi negada. Por favor, faça uma nova solicitação." });
+        
+    } else {
+        return res.status(500).json({ error: "Status de solicitação inesperado." });
+    }
+
+  } catch (err) {
+    console.error("Erro ao gerar QRCode:", err);
+    return res.status(500).json({ error: "Erro ao gerar QRCode. Erro interno." });
+  }
 }
+
 
 async function enviarQrCodeEmail(req, res) {
   try {
@@ -222,19 +256,46 @@ async function enviarQrCodeEmail(req, res) {
 
 async function gerarQrCodeComLink(req, res) {
   try {
-    const user = await User.findByPk(req.userId);
-    const qrPath = await generateQRCodeAsFile({
-      nome: user.nome,
-      cpf: user.cpf,
-      email: user.email,
-      telefone: user.telefone,
-      tipo: user.tipo
-    });
-    const fullUrl = `${req.protocol}://${req.get('host')}${qrPath}`;
-    res.json({ qrCodeUrl: fullUrl });
+
+    const { user_email } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: "ID de usuário não fornecido." });
+    }
+
+    const result = await sql`SELECT * FROM userweb WHERE user_email = ${user_email}`;
+    const dados_user = result[0];
+
+    if (!dados_user) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+
+    if (dados_user.cpf) {
+      try {
+        dados_user.cpf = decrypt(dados_user.cpf);
+      } catch (err) {
+        console.warn("Não foi possível descriptografar o CPF:", err);
+
+      }
+    }
+
+    const payload = {
+      id_user: dados_user.id_user,
+      name: dados_user.name,
+      cpf: dados_user.cpf,
+      user_email: dados_user.user_email,
+      phone: dados_user.phone,
+      type_user: dados_user.type_user,
+      verify2fa: dados_user.verify2fa
+    };
+
+    const qrCode = await generateQRCode(payload);
+
+    res.json({ qrCode });
+
   } catch (err) {
-    console.error('Erro ao gerar QR Code com link:', err);
-    res.status(500).json({ error: "Erro ao gerar QR Code." });
+    console.error('Erro ao gerar QR Code:', err);
+    return res.status(500).json({ error: "Erro ao gerar QRCode." });
   }
 }
 
@@ -334,6 +395,43 @@ async function trocarSenha(req, res) {
   }
 }
 
+async function solicitarQRCode(req, res) {
+  try {
+    const { user_email } = req.params;
+
+    const result = await sql`SELECT id_user FROM userweb WHERE user_email = ${user_email}`;
+    const dados_user = result[0];
+
+    if (!dados_user) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+
+    const id_requester = dados_user.id_user;
+    const existingRequest = await sql`SELECT * FROM qrcode_requests WHERE id_requester = ${id_requester} AND status = 'pendente'`;
+
+    if (existingRequest.length > 0) {
+        return res.status(200).json({
+            message: 'Você já tem uma solicitação de QR Code pendente de aprovação.',
+            status: 'pendente'
+        });
+    }
+
+    const insertResult = await sql`
+        INSERT INTO qrcode_requests(id_requester, status, id_approver)
+        VALUES (${id_requester}, 'pendente', NULL)
+        RETURNING *
+    `; 
+
+    res.status(201).json({
+        message: 'Solicitação feita com sucesso! Aguarde a aprovação.',
+        request_id: insertResult[0].id
+    });
+  } catch (err) {
+    console.error("Erro ao solicitar QRCode:", err);
+    return res.status(500).json({ error: "Não foi possível fazer a solicitação. Erro interno." });
+  }
+}
+
 module.exports = {
   cadastrar,
   verificar2FA,
@@ -344,5 +442,6 @@ module.exports = {
   enviarQrCodeWhatsapp,
   editarPerfil,
   trocarSenha,
-  verConta
+  verConta,
+  solicitarQRCode
 };
