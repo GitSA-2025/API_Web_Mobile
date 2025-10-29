@@ -582,7 +582,7 @@ async function aprovacaoQRCode(req, res) {
       return res.status(404).json({ error: 'Usuário não encontrado.' });
     }
 
-    const result = await sql`UPDATE qrcodes_requets
+    const result = await sql`UPDATE qrcode_requets
     SET id_approver = ${dados_user.id_user}, status = ${decisao}
     WHERE id = ${id_request}`;
 
