@@ -602,27 +602,29 @@ async function aprovacaoQRCode(req, res) {
 
 async function verSolicitacoes(req, res) {
   try {
-
     const query = await sql`SELECT * FROM qrcode_requests WHERE status = 'pendente'`;
 
     if (query.length === 0) {
-
       return res.status(404).json({ message: 'Nenhuma solicitação de QRCode encontrada.' });
     }
 
-    const dados_req = query[0];
+    const solicitacoes = await Promise.all(
+      query.map(async (solic) => {
+        const userQuery = await sql`SELECT name, user_email, type_user FROM userweb WHERE id_user = ${solic.id_requester}`;
+        const user = userQuery[0];
+        return {
+          id: solic.id_request,
+          status: solic.status,
+          name: user?.name?.trim(),
+          user_email: user?.user_email,
+          type_user: user?.type_user
+        };
+      })
+    );
 
-    const query2 = await sql`SELECT * FROM userweb WHERE id_user = ${dados_req.id_requester}`;
-
-    if (query2.length === 0) {
-        return res.status(404).json({ message: 'Usuário requisitante não encontrado.' });
-    }
-
-    const dados_user = query2[0];
-    res.status(200).json(dados_user);
-
+    res.status(200).json(solicitacoes);
   } catch (err) {
-    console.error('Erro ao ver as solicitações de QRCode. ', err);
+    console.error('Erro ao ver as solicitações de QRCode:', err);
     res.status(500).json({ error: 'Erro interno ao processar solicitações de QRCode.' });
   }
 }
