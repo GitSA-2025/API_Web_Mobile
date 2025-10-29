@@ -575,7 +575,7 @@ async function aprovacaoQRCode(req, res) {
   try {
     const { user_email, decisao } = req.body;
 
-    const { id_request } = req.params;
+    const { id_requester } = req.params;
 
     const dados_user = await getUserByEmail(user_email);
     if (!dados_user) {
@@ -584,7 +584,7 @@ async function aprovacaoQRCode(req, res) {
 
     const result = await sql`UPDATE qrcodes_requets
     SET id_approver = ${dados_user.id_user}, status = ${decisao}
-    WHERE id = ${id_request}`;
+    WHERE id = ${id_requester}`;
 
     res.status(201).json({
       message: 'Status alterado com sucesso!',
@@ -603,7 +603,7 @@ async function aprovacaoQRCode(req, res) {
 async function verSolicitacoes(req, res) {
   try {
     const query = await sql`
-      SELECT id_request, id_requester, status
+      SELECT id, id_requester, status
       FROM qrcode_requests
       WHERE status = 'pendente'
     `;
@@ -622,7 +622,7 @@ async function verSolicitacoes(req, res) {
         const user = userQuery[0];
 
         return {
-          id_request: solic.id_request,         
+          id: solic.id,         
           id_requester: solic.id_requester,      
           status: solic.status,
           name: user?.name?.trim() || 'Sem nome',
