@@ -602,7 +602,11 @@ async function aprovacaoQRCode(req, res) {
 
 async function verSolicitacoes(req, res) {
   try {
-    const query = await sql`SELECT * FROM qrcode_requests WHERE status = 'pendente'`;
+    const query = await sql`
+      SELECT id_request, id_requester, status
+      FROM qrcode_requests
+      WHERE status = 'pendente'
+    `;
 
     if (query.length === 0) {
       return res.status(404).json({ message: 'Nenhuma solicitação de QRCode encontrada.' });
@@ -610,24 +614,32 @@ async function verSolicitacoes(req, res) {
 
     const solicitacoes = await Promise.all(
       query.map(async (solic) => {
-        const userQuery = await sql`SELECT name, user_email, type_user FROM userweb WHERE id_user = ${solic.id_requester}`;
+        const userQuery = await sql`
+          SELECT name, user_email, type_user
+          FROM userweb
+          WHERE id_user = ${solic.id_requester}
+        `;
         const user = userQuery[0];
+
         return {
-          id: solic.id_request,
+          id_request: solic.id_request,         
+          id_requester: solic.id_requester,      
           status: solic.status,
-          name: user?.name?.trim(),
-          user_email: user?.user_email,
-          type_user: user?.type_user
+          name: user?.name?.trim() || 'Sem nome',
+          user_email: user?.user_email || 'Sem email',
+          type_user: user?.type_user || 'Desconhecido'
         };
       })
     );
 
-    res.status(200).json(solicitacoes);
+    return res.status(200).json(solicitacoes);
+
   } catch (err) {
     console.error('Erro ao ver as solicitações de QRCode:', err);
-    res.status(500).json({ error: 'Erro interno ao processar solicitações de QRCode.' });
+    return res.status(500).json({ error: 'Erro interno ao processar solicitações de QRCode.' });
   }
 }
+
 
 module.exports = {
   cadastrarAPP,
