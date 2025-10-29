@@ -95,11 +95,32 @@ async function criarRegistroEntrega(req, res) {
 
     console.log("Dados recebidos:", req.body);
 
-    const agora = new Date();
-    const data = agora.toISOString().split('T')[0];
-    const hrentrada = agora.toTimeString().split(' ')[0];
+    const agora_brasil = new Date().toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+
+    const [data_formatada_hora, hora_completa] = agora_brasil.split(', ');
+
+    const data_formatada = data_formatada_hora.replace(/\//g, '-');
+
+    const hrentrada = hora_completa.split(':').slice(0, 3).join(':');
+
+    console.log(`Data formatada (dd-mm-aaaa): ${data_formatada}`);
+    console.log(`Hora (BRT/BRST): ${hrentrada}`);
+
 
     const user = await sql`SELECT * FROM userapp WHERE user_email = ${user_email}`;
+
+    if (!user || user.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
 
     const dados_user = user[0];
 
@@ -107,7 +128,7 @@ async function criarRegistroEntrega(req, res) {
       INSERT INTO deliveryRegister
         (name, phone, date, hr_entry, plate_vehicle, industry, n_fiscal, iduser, type)
       VALUES
-        (${nome}, ${telefone}, ${data}, ${hrentrada}, ${placa}, ${industria}, ${n_fiscal}, ${dados_user.id_user}, 'entregador')
+        (${nome}, ${telefone}, ${data_formatada}, ${hrentrada}, ${placa}, ${industria}, ${n_fiscal}, ${dados_user.id_user}, 'entregador')
       RETURNING *;
     `;
 
@@ -139,19 +160,38 @@ async function criarRegistroEntrada(req, res) {
 
     const cpfHast = encrypt(cpf);
 
-    const agora = new Date();
-    const data = agora.toISOString().split('T')[0];
-    const hrentrada = agora.toTimeString().split(' ')[0];
+    const agora_brasil = new Date().toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false 
+    });
+
+    const [data_formatada_hora, hora_completa] = agora_brasil.split(', ');
+
+
+    const data_formatada = data_formatada_hora.replace(/\//g, '-');
+
+
+    const hrentrada = hora_completa.split(':').slice(0, 3).join(':'); 
 
     const user = await sql`SELECT * FROM userapp WHERE user_email = ${user_email}`;
 
+    if (!user || user.length === 0) {
+      return res.status(404).json({ error: 'Usuário logado não encontrado.' });
+    }
+
     const dados_user = user[0];
 
-
     const result = await sql`
-    INSERT INTO accessregister (name, cpf, type_person, date, hr_entry, hr_exit, car_plate, status, iduser) 
-    VALUES (${nome}, ${cpfHast}, ${tipo}, ${data}, ${hrentrada}, '-', ${verifPlaca}, 'Liberado', ${dados_user.id_user}) RETURNING *`;
-
+      INSERT INTO accessregister (name, cpf, type_person, date, hr_entry, hr_exit, car_plate, status, iduser) 
+      VALUES (${nome}, ${cpfHast}, ${tipo}, ${data_formatada}, ${hrentrada}, '-', ${verifPlaca}, 'Liberado', ${dados_user.id_user}) 
+      RETURNING *;
+    `;
 
     res.status(201).json({
       message: 'Registro cadastrado!',
@@ -160,7 +200,7 @@ async function criarRegistroEntrada(req, res) {
 
   }
   catch (err) {
-    console.error('Erro ao registro entrada: ', err)
+    console.error('Erro ao registro entrada: ', err);
     res.status(500).json({ error: 'Erro ao registrar entrada.' });
   }
 }
@@ -336,14 +376,22 @@ async function exibirRegistroEntregaPorID(req, res) {
 async function marcarSaidaRegistroEntrada(req, res) {
   try {
     const { idRegister } = req.params;
+    
+    const agora_brasil = new Date().toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false 
+    });
 
-    const agora = new Date();
-    const hrsaida = agora.toTimeString().split(' ')[0];
+    const hrsaida = agora_brasil; 
 
     const result = await sql`
-    UPDATE accessregister
-    SET hr_exit = ${hrsaida}
-    WHERE idRegister = ${idRegister} RETURNING *`;
+      UPDATE accessregister
+      SET hr_exit = ${hrsaida}
+      WHERE idRegister = ${idRegister} RETURNING *;
+    `;
 
     res.status(201).json({
       message: 'Saída registrada!',
@@ -490,22 +538,18 @@ async function geradorDeGraficoIA(req, res) {
       return res.status(400).json({ erro: "Datas não informadas" });
     }
 
-    // === Buscar acessos de visitantes e colaboradores ===
     const acessos = await sql`
       SELECT type_person, COUNT(*) AS total
       FROM accessregister
       WHERE date BETWEEN ${dataInicio} AND ${dataFim}
       GROUP BY type_person
     `;
-
-    // === Buscar entregadores ===
     const entregas = await sql`
       SELECT COUNT(*) AS total
       FROM deliveryregister
       WHERE date BETWEEN ${dataInicio} AND ${dataFim}
     `;
 
-    // === Montar resposta padronizada para o gráfico ===
     const totalColaboradores =
       acessos.find((a) => a.type_person === "colaborador")?.total || 0;
     const totalVisitantes =
