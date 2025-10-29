@@ -490,7 +490,7 @@ async function geradorDeGraficoIA(req, res) {
     const fim = dataFim;
 
     const access = await sql`
-      SELECT type, date
+      SELECT type_person, date
       FROM accessregister
       WHERE date BETWEEN ${inicio} AND ${fim}`;
 
