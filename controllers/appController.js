@@ -602,22 +602,29 @@ async function aprovacaoQRCode(req, res) {
 
 async function verSolicitacoes(req, res) {
   try {
+
     const query = await sql`SELECT * FROM qrcode_requests`;
+
+    if (query.length === 0) {
+
+      return res.status(404).json({ message: 'Nenhuma solicitação de QRCode encontrada.' });
+    }
 
     const dados_req = query[0];
 
-    const query2 = await sql`SELECT * userweb WHERE id_user WHERE id_user = ${dados_req.id_requester}`;
+    const query2 = await sql`SELECT * FROM userweb WHERE id_user = ${dados_req.id_requester}`;
+
+    if (query2.length === 0) {
+        return res.status(404).json({ message: 'Usuário requisitante não encontrado.' });
+    }
 
     const dados_user = query2[0];
-
     res.status(200).json(dados_user);
-  }
 
-  catch(err){
-    console.error('Erro ao ver as solitações de QRCode. ', err);
-    res.status(500).json({ error: 'Erro ao ver as solitações de QRCode.' });
+  } catch (err) {
+    console.error('Erro ao ver as solicitações de QRCode. ', err);
+    res.status(500).json({ error: 'Erro interno ao processar solicitações de QRCode.' });
   }
-  
 }
 
 module.exports = {
