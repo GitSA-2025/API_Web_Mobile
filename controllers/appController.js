@@ -603,7 +603,7 @@ async function aprovacaoQRCode(req, res) {
 async function verSolicitacoes(req, res) {
   try {
 
-    const query = await sql`SELECT * FROM qrcode_requests`;
+    const query = await sql`SELECT * FROM qrcode_requests WHERE status = 'pendente'`;
 
     if (query.length === 0) {
 
