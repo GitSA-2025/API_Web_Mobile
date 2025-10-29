@@ -486,69 +486,42 @@ async function geradorDeGraficoIA(req, res) {
   try {
     const { dataInicio, dataFim } = req.body;
 
-    const inicio = dataInicio;
-    const fim = dataFim;
-
-    const access = await sql`
-      SELECT type_person, date
-      FROM accessregister
-      WHERE date BETWEEN ${inicio} AND ${fim}`;
-
-      const deliveries = await sql`
-      SELECT 'entregador' AS type, date
-      FROM deliveryregister
-      WHERE date BETWEEN ${inicio} AND ${fim}
-    `;
-
-    const todosDados = [...access.rows, ...deliveries.rows];
-
-    const prompt = `
-      Você é uma IA especialista em análise de dados.
-      Gere um JSON de gráfico de barras agrupando os seguintes dados de acessos:
-      ${JSON.stringify(todosDados)}
-
-      O JSON deve conter o total de registros de cada tipo de pessoa:
-      [
-        { "label": "colaborador", "value": X },
-        { "label": "visitante", "value": Y },
-        { "label": "entregador", "value": Z }
-      ]
-
-      Retorne APENAS o JSON puro, sem explicações.
-    `;
-
-    const token_hf = process.env.TOKEN_HF;
-
-    const hfResponse = await axios.post(
-      "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
-      { inputs: prompt },
-      {
-        headers: {
-          Authorization: `Bearer ${token_hf}`,
-        },
-      }
-    );
-
-    const respostaIA = hfResponse.data[0]?.generated_text || "[]";
-    let grafico;
-    try {
-      grafico = JSON.parse(respostaIA.match(/\[.*\]/s)[0]);
-    } catch {
-      grafico = [
-        { label: "colaborador", value: 0 },
-        { label: "visitante", value: 0 },
-        { label: "entregador", value: 0 },
-      ];
+    if (!dataInicio || !dataFim) {
+      return res.status(400).json({ erro: "Datas não informadas" });
     }
 
-    res.status(200).json({
-      periodo: `${inicio} a ${fim}`,
-      grafico,
-      totalRegistros: todosDados.length,
-    });
+    // === Buscar acessos de visitantes e colaboradores ===
+    const acessos = await sql`
+      SELECT type_person, COUNT(*) AS total
+      FROM accessregister
+      WHERE date BETWEEN ${dataInicio} AND ${dataFim}
+      GROUP BY type_person
+    `;
+
+    // === Buscar entregadores ===
+    const entregas = await sql`
+      SELECT COUNT(*) AS total
+      FROM deliveryregister
+      WHERE date BETWEEN ${dataInicio} AND ${dataFim}
+    `;
+
+    // === Montar resposta padronizada para o gráfico ===
+    const totalColaboradores =
+      acessos.find((a) => a.type_person === "colaborador")?.total || 0;
+    const totalVisitantes =
+      acessos.find((a) => a.type_person === "visitante")?.total || 0;
+    const totalEntregadores = entregas[0]?.total || 0;
+
+    const grafico = [
+      { label: "Colaboradores", value: Number(totalColaboradores) },
+      { label: "Visitantes", value: Number(totalVisitantes) },
+      { label: "Entregadores", value: Number(totalEntregadores) },
+    ];
+
+    res.json({ grafico });
   } catch (err) {
     console.error("Erro ao gerar gráfico com IA:", err);
-    res.status(500).json({ erro: "Falha ao gerar gráfico com IA." });
+    res.status(500).json({ erro: "Erro interno ao gerar gráfico com IA" });
   }
 
 }
