@@ -10,7 +10,8 @@ const {
     editarPerfil,
     trocarSenha,
     enviarQrCodeWhatsapp,
-    verConta
+    verConta,
+    solicitarQRCode
 } = require('../controllers/authController');
 const QRCodeEntry = require('../models/qrcode');
 
@@ -26,6 +27,7 @@ router.get('/gerar-qrcode-link', authMiddleware, gerarQrCodeComLink);
 router.put('/editar-perfil', authMiddleware, editarPerfil);
 router.put('/trocar-senha', authMiddleware, trocarSenha);
 router.post('/enviar-qrcode-whatsapp', authMiddleware, enviarQrCodeWhatsapp);
+router.post('/solicitar-qrcode', authMiddleware, solicitarQRCode);
 
 router.post('/api/validar-qrcode', async (req, res) => {
   try {

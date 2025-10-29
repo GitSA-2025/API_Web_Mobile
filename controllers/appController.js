@@ -583,20 +583,38 @@ async function aprovacaoQRCode(req, res) {
     const result = await sql`UPDATE qrcodes_requets
     SET id_approver = ${dados_user.id_user}, status = ${decisao}
     WHERE id = ${id_request}`;
-    
-          res.status(201).json({
-            message: 'Status alterado com sucesso!',
-            solicitacao: result[0]
-          });
+
+    res.status(201).json({
+      message: 'Status alterado com sucesso!',
+      solicitacao: result[0]
+    });
 
 
   }
-  catch(err){
+  catch (err) {
     res.status(500).json({ error: "Erro ao alterar os status." });
     console.log(err);
   }
 
-  
+}
+
+async function verSolicitacoes(req, res) {
+  try {
+    const query = await sql`SELECT * FROM qrcode_requests`;
+
+    const dados_req = query[0];
+
+    const query2 = await sql`SELECT * userweb WHERE id_user WHERE id_user = ${dados_req.id_requester}`;
+
+    const dados_user = query2[0];
+
+    res.status(200).json(dados_user);
+  }
+
+  catch(err){
+    console.error('Erro ao ver as solitações de QRCode. ', err);
+    res.status(500).json({ error: 'Erro ao ver as solitações de QRCode.' });
+  }
   
 }
 
@@ -619,5 +637,7 @@ module.exports = {
   deletarRegistroEntrega,
   filtrarEntregas,
   filtrarEntradas,
-  geradorDeGraficoIA
+  geradorDeGraficoIA,
+  aprovacaoQRCode,
+  verSolicitacoes
 };

@@ -137,7 +137,6 @@ async function gerarQRCodeController(req, res) {
     const query = await sql`
         SELECT * FROM qrcode_requests
         WHERE id_requester = ${dados_user.id_user}
-        ORDER BY created_at DESC -- Supondo que você tem uma coluna 'created_at'
         LIMIT 1
     `;
     const rst = query[0];
