@@ -1,131 +1,163 @@
 require('dotenv').config();
 
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const axios = require("axios");
-const path = require("path");
-const fs = require("fs");
-const User = require('../models/user');
-const { generate2FACode } = require('../utils/generate2FACode');
-const { send2FACode, transporter } = require('../services/mailService');
-const { generateQRCode, generateQRCodeAsFile } = require('../utils/generateQRCode');
-const QRCodeEntry = require('../models/qrcode');
-const sql = require('../db/db');
-const { encrypt, decrypt } = require('../lib/crypto.js');
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import axios from "axios";
+import { generate2FACode } from "../utils/generate2FACode.js";
+import { send2FACode } from "../services/mailService.js";
+import { generateQRCode } from "../utils/generateQRCode.js";
+import { encrypt, decrypt } from "../lib/crypto.js";
+import { getSupabase } from "../db/db.js";
 
-async function cadastrar(req, res) {
+const supabase = getSupabase();
+
+export async function cadastrar(c) {
   try {
-    const { nome, cpf, email, telefone, senha, tipo } = req.body;
+    const { nome, cpf, email, telefone, senha, tipo } =  c.req.json();
     const senhaHash = await bcrypt.hash(senha, 10);
     const codigo2FA = generate2FACode();
-    const cpfHast = encrypt(cpf);
+    const cpfHash = encrypt(cpf);
 
-    const result = await sql`
-      INSERT INTO userweb (name, cpf, user_email, phone, user_password, type_user, code2fa) 
-      VALUES (${nome}, ${cpfHast}, ${email}, ${telefone}, ${senhaHash}, 'visitante', ${codigo2FA}) RETURNING *`;
+    const { data, error } = await supabase
+      .from("userweb")
+      .insert([
+        {
+          name: nome,
+          cpf: cpfHash,
+          user_email: email,
+          phone: telefone,
+          user_password: senhaHash,
+          type_user: tipo || "visitante",
+          code2fa: codigo2FA,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
 
     await send2FACode(email, codigo2FA);
-    res.status(201).json({
-      message: 'Usuário cadastrado! Verifique o código enviado por e-mail.',
-      user: result[0]
+    return c.json({
+      message: "Usuário cadastrado! Verifique o código enviado por e-mail.",
+      user: data,
+    },201);
+  } catch (err) {
+    console.error("Erro no cadastro:", err);
+    return c.json({ error: "Erro ao cadastrar usuário." }, 500);
+  }
+}
+
+export async function verificar2FA(c) {
+  try {
+    const body = await c.req.json();
+    const user_email = body.user_email || body.email;
+    const code = body.code || body.codigo;
+
+    const { data: user } = await supabase
+      .from("userweb")
+      .select("*")
+      .eq("user_email", user_email)
+      .single();
+
+    if (!user || user.code2fa !== code)
+      return c.json({ error: "Código inválido ou expirado." }, 400);
+
+    const { error } = await supabase
+      .from("userweb")
+      .update({ verify2fa: true })
+      .eq("id_user", user.id_user);
+
+    if (error) throw error;
+
+    return c.json({ message: "2FA verificado com sucesso!" }, 200);
+  } catch (err) {
+    console.error("Erro ao verificar 2FA:", err);
+    return c.json({ error: "Erro ao verificar 2FA." }), 500;
+  }
+}
+
+
+export async function login(c) {
+  try {
+    const { email, senha } = c.req.json();
+
+    const { data: user } = await supabase
+      .from("userweb")
+      .select("*")
+      .eq("user_email", email)
+      .single();
+
+    if (!user || !(await bcrypt.compare(senha, user.user_password)))
+      return c.json({ error: "Credenciais inválidas" }, 401);
+
+    if (!user.verify2fa)
+      return c.json({ error: "2FA não verificado" }, 403);
+
+    const token = jwt.sign({ id: user.id_user }, globalThis.env.JWT_SECRET, {
+      expiresIn: "1h",
     });
 
-  }
-  catch (err) {
-    console.error('Erro no cadastro: ', err);
-    res.status(500).json({ error: 'Erro ao cadastrar usuário. Detalhes no terminal.' });
-  }
-}
-
-async function verificar2FA(req, res) {
-  try {
-    const user_email = req.body.user_email || req.body.email;
-    const code = req.body.code || req.body.codigo;
-
-    const result = await sql`
-      SELECT * FROM userweb WHERE user_email = ${user_email}`;
-    const user = result[0];
-
-    if (!user || user.code2fa !== code) {
-      return res.status(400).json({ error: 'Código inválido ou expirado.' });
-    }
-
-    await sql`
-      UPDATE userweb SET verify2fa = true WHERE id_user = ${user.id_user};`;
-
-    return res.status(200).json({ message: '2FA verificado com sucesso!' });
+    return c.json({ token });
   } catch (err) {
-    console.error('Erro ao verificar 2FA:', err);
-    return res.status(500).json({ error: 'Erro interno ao verificar 2FA.' });
+    console.error("Erro no login:", err);
+    return c.json({ error: "Erro interno ao fazer login." }, 500);
   }
 }
 
-
-async function login(req, res) {
-  const { email, senha } = req.body;
-  const result = await sql`
-    SELECT * FROM userweb WHERE user_email = ${email}`;
-
-  const user = result[0];
-
-  if (!user || !(await bcrypt.compare(senha, user.user_password))) return res.status(401).json({ error: 'Credenciais inválidas' });
-  if (!user.verify2fa) return res.status(403).json({ error: '2FA não verificado' });
-
-  const token = jwt.sign({ id: user.id_user }, process.env.JWT_SECRET, { expiresIn: '1h' });
-  res.json({ token });
-}
-
-async function verConta(req, res) {
+export async function verConta(c) {
   try {
-    const { user_email } = req.params;
+    const { user_email } = c.req.json();
 
+    const { data: user } = await supabase
+      .from("userweb")
+      .select("*")
+      .eq("user_email", user_email)
+      .single();
 
-    const result = await sql`SELECT * FROM userweb WHERE user_email = ${user_email}`;
-    const dados_user = result[0];
+    if (!user) return c.json({ error: "Usuário não encontrado." }, 404);
 
-    if (!dados_user) {
-      return res.status(404).json({ error: "Usuário não encontrado." });
-    }
-
-
-    if (dados_user.cpf) {
+    if (user.cpf) {
       try {
-        dados_user.cpf = decrypt(dados_user.cpf);
-      } catch (err) {
-        console.warn("Não foi possível descriptografar o CPF:", err);
+        user.cpf = decrypt(user.cpf);
+      } catch {
+        console.warn("Falha ao descriptografar CPF");
       }
     }
-
 
     const payload = {
-      id_user: dados_user.id_user,
-      name: dados_user.name,
-      cpf: dados_user.cpf,
-      user_email: dados_user.user_email,
-      phone: dados_user.phone,
-      type_user: dados_user.type_user,
-      verify2fa: dados_user.verify2fa
+      id_user: user.id_user,
+      name: user.name,
+      cpf: user.cpf,
+      user_email: user.user_email,
+      phone: user.phone,
+      type_user: user.type_user,
+      verify2fa: user.verify2fa,
     };
 
-    return res.status(200).json(payload);
-
+    return c.json(payload);
   } catch (err) {
     console.error("Erro ao buscar conta:", err);
-    return res.status(500).json({ error: "Erro ao buscar conta." });
+    return c.json({ error: "Erro ao buscar conta." }, 500);
   }
 }
 
-async function gerarQRCodeController(req, res) {
+
+export async function gerarQRCodeController(c) {
   try {
-    const { user_email } = req.params;
+    const { user_email } = c.req.json();
 
-    const result = await sql`SELECT * FROM userweb WHERE user_email = ${user_email}`;
-    const dados_user = result[0];
+    // Busca usuário
+    const { data: dados_user, error: userError } = await supabase
+      .from("userweb")
+      .select("*")
+      .eq("user_email", user_email)
+      .single();
 
-    if (!dados_user) {
-      return res.status(404).json({ error: "Usuário não encontrado." });
+    if (userError || !dados_user) {
+      return c.json({ error: "Usuário não encontrado." }, 404);
     }
 
+    // Tenta descriptografar CPF
     if (dados_user.cpf) {
       try {
         dados_user.cpf = decrypt(dados_user.cpf);
@@ -134,53 +166,78 @@ async function gerarQRCodeController(req, res) {
       }
     }
 
-    const query = await sql`
-        SELECT * FROM qrcode_requests
-        WHERE id_requester = ${dados_user.id_user}
-        LIMIT 1
-    `;
-    const rst = query[0];
+    // Busca solicitação de QRCode
+    const { data: solicitacao, error: reqError } = await supabase
+      .from("qrcode_requests")
+      .select("*")
+      .eq("id_requester", dados_user.id_user)
+      .limit(1)
+      .single();
 
-    if (!rst) {
-        return res.status(403).json({ error: "Nenhuma solicitação de QR Code encontrada. Por favor, solicite primeiro." });
+    if (reqError && reqError.code !== "PGRST116") throw reqError;
+
+    if (!solicitacao) {
+      return c.json({
+        error:
+          "Nenhuma solicitação de QR Code encontrada. Por favor, solicite primeiro.",
+      }, 403);
     }
 
-    if (rst.status === 'aprovado') {
-        const payload = {
-            id_user: dados_user.id_user,
-            name: dados_user.name,
-            cpf: dados_user.cpf,
-            user_email: dados_user.user_email,
-            phone: dados_user.phone,
-            type_user: dados_user.type_user,
-            verify2fa: dados_user.verify2fa
-        };
+    // --- STATUS APROVADO ---
+    if (solicitacao.status === "aprovado") {
+      const payload = {
+        id_user: dados_user.id_user,
+        name: dados_user.name,
+        cpf: dados_user.cpf,
+        user_email: dados_user.user_email,
+        phone: dados_user.phone,
+        type_user: dados_user.type_user,
+        verify2fa: dados_user.verify2fa,
+      };
 
-        const qrCode = await generateQRCode(payload);
-        
-        await sql`DELETE FROM qrcode_requests WHERE id_requester = ${dados_user.id_user}`;
-        
-        return res.json({ qrCode, status: 'aprovado' });
-        
-    } else if (rst.status === 'pendente') {
-        return res.status(200).json({ status: 'pendente', message: "Solicitação pendente de aprovação do porteiro." });
-        
-    } else if (rst.status === 'negado') {
-        await sql`DELETE FROM qrcode_requests WHERE id_requester = ${dados_user.id_user}`;
-        return res.status(403).json({ status: 'negado', error: "Sua solicitação foi negada. Por favor, faça uma nova solicitação." });
-        
-    } else {
-        return res.status(500).json({ error: "Status de solicitação inesperado." });
+      const qrCode = await generateQRCode(payload);
+
+      // Remove solicitação usada
+      const { error: delError } = await supabase
+        .from("qrcode_requests")
+        .delete()
+        .eq("id_requester", dados_user.id_user);
+
+      if (delError) throw delError;
+
+      return c.json({ qrCode, status: "aprovado" });
+    }
+
+    // --- STATUS PENDENTE ---
+    if (solicitacao.status === "pendente") {
+      return c.json({
+        status: "pendente",
+        message: "Solicitação pendente de aprovação do porteiro.",
+      }, 200);
+    }
+
+    // --- STATUS NEGADO ---
+    if (solicitacao.status === "negado") {
+      await supabase
+        .from("qrcode_requests")
+        .delete()
+        .eq("id_requester", dados_user.id_user);
+
+      return c.json({
+        status: "negado",
+        error:
+          "Sua solicitação foi negada. Por favor, faça uma nova solicitação.",
+      }, 403);
     }
 
   } catch (err) {
     console.error("Erro ao gerar QRCode:", err);
-    return res.status(500).json({ error: "Erro ao gerar QRCode. Erro interno." });
+    return c.json({ error: "Erro ao gerar QRCode. Erro interno." }, 500);
   }
 }
 
 
-async function enviarQrCodeEmail(req, res) {
+/*async function enviarQrCodeEmail(req, res) {
   try {
     const user = await User.findByPk(req.userId);
 
@@ -251,22 +308,20 @@ async function enviarQrCodeEmail(req, res) {
     console.error('Erro ao enviar email:', error);
     res.status(500).json({ error: "Erro ao enviar QR Code por e-mail." });
   }
-}
+}*/
 
-async function gerarQrCodeComLink(req, res) {
+export async function gerarQrCodeComLink(c) {
   try {
+    const user_email = c.req.param("user_email");
 
-    const { user_email } = req.params;
+    const { data: dados_user, error } = await supabase
+      .from("userweb")
+      .select("*")
+      .eq("user_email", user_email)
+      .single();
 
-    if (!userId) {
-      return res.status(401).json({ error: "ID de usuário não fornecido." });
-    }
-
-    const result = await sql`SELECT * FROM userweb WHERE user_email = ${user_email}`;
-    const dados_user = result[0];
-
-    if (!dados_user) {
-      return res.status(404).json({ error: "Usuário não encontrado." });
+    if (error || !dados_user) {
+      return c.json({ error: "Usuário não encontrado." }, 404);
     }
 
     if (dados_user.cpf) {
@@ -274,10 +329,10 @@ async function gerarQrCodeComLink(req, res) {
         dados_user.cpf = decrypt(dados_user.cpf);
       } catch (err) {
         console.warn("Não foi possível descriptografar o CPF:", err);
-
       }
     }
 
+    // Monta o payload
     const payload = {
       id_user: dados_user.id_user,
       name: dados_user.name,
@@ -285,20 +340,20 @@ async function gerarQrCodeComLink(req, res) {
       user_email: dados_user.user_email,
       phone: dados_user.phone,
       type_user: dados_user.type_user,
-      verify2fa: dados_user.verify2fa
+      verify2fa: dados_user.verify2fa,
     };
 
+    // Gera o QRCode
     const qrCode = await generateQRCode(payload);
 
-    res.json({ qrCode });
-
+    return c.json({ qrCode });
   } catch (err) {
-    console.error('Erro ao gerar QR Code:', err);
-    return res.status(500).json({ error: "Erro ao gerar QRCode." });
+    console.error("Erro ao gerar QR Code:", err);
+    return c.json({ error: "Erro ao gerar QRCode." }, 500);
   }
 }
 
-async function enviarQrCodeWhatsapp(req, res) {
+/*async function enviarQrCodeWhatsapp(req, res) {
   try {
     const user = await User.findByPk(req.userId);
     if (!user) {
@@ -362,23 +417,54 @@ Equipe SA 💼`
 }
 
 
-async function editarPerfil(req, res) {
-  const { nome, telefone, email, tipo } = req.body;
+export async function editarPerfil(req, res) {
   try {
-    const user = await User.findByPk(req.userId);
-    if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
-    user.nome = nome;
-    user.telefone = telefone.replace(/\D/g, '');
-    user.email = email;
-    user.tipo = tipo;
-    await user.save();
-    res.json({ message: "Perfil atualizado com sucesso." });
+    const { nome, telefone, email, tipo } = req.body;
+    const { userId } = req.params || req.body; // dependendo de onde vem o ID
+
+    if (!userId) {
+      return res.status(400).json({ error: "ID de usuário não fornecido." });
+    }
+
+    // Busca o usuário no Supabase
+    const { data: user, error: userError } = await supabase
+      .from("userweb")
+      .select("*")
+      .eq("id_user", userId)
+      .single();
+
+    if (userError || !user) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+
+    // Atualiza dados
+    const telefoneFormatado = telefone.replace(/\D/g, "");
+
+    const { data: updated, error: updateError } = await supabase
+      .from("userweb")
+      .update({
+        name: nome,
+        phone: telefoneFormatado,
+        user_email: email,
+        type_user: tipo,
+      })
+      .eq("id_user", userId)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    res.json({
+      message: "Perfil atualizado com sucesso.",
+      usuario: updated,
+    });
   } catch (err) {
+    console.error("Erro ao atualizar perfil:", err);
     res.status(500).json({ error: "Erro ao atualizar perfil." });
   }
-}
+} */
 
-async function trocarSenha(req, res) {
+/*async function trocarSenha(req, res) {
   const { senhaAtual, novaSenha } = req.body;
   try {
     const user = await User.findByPk(req.userId);
@@ -392,55 +478,53 @@ async function trocarSenha(req, res) {
   } catch (err) {
     res.status(500).json({ error: "Erro ao alterar senha." });
   }
-}
+}*/
 
-async function solicitarQRCode(req, res) {
+export async function solicitarQRCode(c) {
   try {
-    const { user_email } = req.params;
+    const user_email = c.req.param("user_email");
 
-    const result = await sql`SELECT id_user FROM userweb WHERE user_email = ${user_email}`;
-    const dados_user = result[0];
+    const { data: user } = await supabase
+      .from("userweb")
+      .select("id_user")
+      .eq("user_email", user_email)
+      .single();
 
-    if (!dados_user) {
-      return res.status(404).json({ error: "Usuário não encontrado." });
+    if (!user) return c.json({ error: "Usuário não encontrado." }, 404);
+
+    const { data: existente } = await supabase
+      .from("qrcode_requests")
+      .select("*")
+      .eq("id_requester", user.id_user)
+      .eq("status", "pendente");
+
+    if (existente && existente.length > 0) {
+      return c.json({
+        message: "Você já possui uma solicitação pendente.",
+        status: "pendente",
+      }, 200);
     }
 
-    const id_requester = dados_user.id_user;
-    const existingRequest = await sql`SELECT * FROM qrcode_requests WHERE id_requester = ${id_requester} AND status = 'pendente'`;
+    const { data: inserted, error } = await supabase
+      .from("qrcode_requests")
+      .insert([{ id_requester: user.id_user, status: "pendente" }])
+      .select()
+      .single();
 
-    if (existingRequest.length > 0) {
-        return res.status(200).json({
-            message: 'Você já tem uma solicitação de QR Code pendente de aprovação.',
-            status: 'pendente'
-        });
-    }
+    if (error) throw error;
 
-    const insertResult = await sql`
-        INSERT INTO qrcode_requests(id_requester, status, id_approver)
-        VALUES (${id_requester}, 'pendente', NULL)
-        RETURNING *
-    `; 
-
-    res.status(201).json({
-        message: 'Solicitação feita com sucesso! Aguarde a aprovação.',
-        request_id: insertResult[0].id
-    });
+    return c.json({
+      message: "Solicitação feita com sucesso! Aguarde a aprovação.",
+      request_id: inserted.id,
+    }, 201);
   } catch (err) {
-    console.error("Erro ao solicitar QRCode:", err);
-    return res.status(500).json({ error: "Não foi possível fazer a solicitação. Erro interno." });
+    console.error("Erro ao solicitar QR Code:", err);
+    return c.json({ error: "Erro interno ao solicitar QR Code." }, 500);
   }
 }
 
-module.exports = {
-  cadastrar,
-  verificar2FA,
-  login,
-  gerarQRCodeController,
-  enviarQrCodeEmail,
-  gerarQrCodeComLink,
+/*export {
+  //enviarQrCodeEmail,
   enviarQrCodeWhatsapp,
-  editarPerfil,
   trocarSenha,
-  verConta,
-  solicitarQRCode
-};
+};*/

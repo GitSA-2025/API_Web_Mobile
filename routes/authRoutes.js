@@ -1,54 +1,89 @@
-const express = require('express');
-const router = express.Router();
-const {
-    cadastrar,
-    verificar2FA,
-    login,
-    gerarQRCodeController,
-    enviarQrCodeEmail,
-    gerarQrCodeComLink,
-    editarPerfil,
-    trocarSenha,
-    enviarQrCodeWhatsapp,
-    verConta,
-    solicitarQRCode
-} = require('../controllers/authController');
-const QRCodeEntry = require('../models/qrcode');
+import { Hono } from "hono";
+import { authMiddleware } from "../middleware/auth.js";
+import {
+  cadastrar,
+  verificar2FA,
+  login,
+  gerarQRCodeController,
+  gerarQrCodeComLink,
+  //editarPerfil,
+  //trocarSenha,
+  //enviarQrCodeWhatsapp,
+  verConta,
+  solicitarQRCode,
+} from "../controllers/authController.js";
 
-const { authMiddleware } = require('../middleware/auth');
+const router = new Hono();
 
-router.post('/cadastrar', cadastrar);
-router.post('/verificar-2fa', verificar2FA);
-router.post('/login', login);
-router.get('/conta/:user_email', authMiddleware, verConta);
-router.get('/gerar-qrcode/:user_email', authMiddleware, gerarQRCodeController);
-router.post('/enviar-qrcode-email', authMiddleware, enviarQrCodeEmail);
-router.get('/gerar-qrcode-link', authMiddleware, gerarQrCodeComLink);
-router.put('/editar-perfil', authMiddleware, editarPerfil);
-router.put('/trocar-senha', authMiddleware, trocarSenha);
-router.post('/enviar-qrcode-whatsapp', authMiddleware, enviarQrCodeWhatsapp);
-router.post('/solicitar-qrcode/:user_email', authMiddleware, solicitarQRCode);
+// --- Rotas públicas ---
+router.post("/cadastrar", async (c) => await cadastrar(c));
+router.post("/verificar-2fa", async (c) => await verificar2FA(c));
+router.post("/login", async (c) => await login(c));
 
-router.post('/api/validar-qrcode', async (req, res) => {
-  try {
-    const { qrId } = req.body;
-
-    const qrEntry = await QRCodeEntry.findByPk(qrId);
-    if (!qrEntry) return res.status(404).json({ error: 'QR Code inválido.' });
-
-    if (qrEntry.usado) return res.status(400).json({ error: 'QR Code já utilizado.' });
-
-    if (new Date() > qrEntry.expiresAt)
-      return res.status(400).json({ error: 'QR Code expirado.' });
-
-    qrEntry.usado = true;
-    await qrEntry.save();
-
-    res.json({ message: 'QR Code válido. Acesso autorizado.' });
-  } catch (err) {
-    console.error('Erro ao validar QR Code:', err);
-    res.status(500).json({ error: 'Erro ao validar QR Code.' });
-  }
+// --- Rotas protegidas ---
+router.get("/conta/:user_email", authMiddleware, async (c) => {
+  const user_email = c.req.param("user_email");
+  return await verConta(c, user_email);
 });
 
-module.exports = router;
+router.get("/gerar-qrcode/:user_email", authMiddleware, async (c) => {
+  const user_email = c.req.param("user_email");
+  return await gerarQRCodeController(c, user_email);
+});
+
+router.get("/gerar-qrcode-link/:user_email", authMiddleware, async (c) => {
+  const user_email = c.req.param("user_email");
+  return await gerarQrCodeComLink(c, user_email);
+});
+
+router.put("/editar-perfil", authMiddleware, async (c) => await editarPerfil(c));
+router.put("/trocar-senha", authMiddleware, async (c) => await trocarSenha(c));
+router.post("/enviar-qrcode-whatsapp", authMiddleware, async (c) => await enviarQrCodeWhatsapp(c));
+
+router.post("/solicitar-qrcode/:user_email", authMiddleware, async (c) => {
+  const user_email = c.req.param("user_email");
+  return await solicitarQRCode(c, user_email);
+});
+
+// --- (Comentado) Validação de QR Code ---
+// Caso queira adaptar futuramente, aqui vai o formato correto:
+/*
+router.post("/api/validar-qrcode", async (c) => {
+  const body = await c.req.json();
+  const { qrId } = body;
+
+  if (!qrId) {
+    return c.json({ error: "QR ID não fornecido." }, 400);
+  }
+
+  const { data: qrEntry, error } = await supabase
+    .from("qrcode_entries")
+    .select("*")
+    .eq("id", qrId)
+    .single();
+
+  if (error || !qrEntry) {
+    return c.json({ error: "QR Code inválido." }, 404);
+  }
+
+  if (qrEntry.usado) {
+    return c.json({ error: "QR Code já utilizado." }, 400);
+  }
+
+  const agora = new Date();
+  if (agora > new Date(qrEntry.expiresAt)) {
+    return c.json({ error: "QR Code expirado." }, 400);
+  }
+
+  const { error: updateError } = await supabase
+    .from("qrcode_entries")
+    .update({ usado: true })
+    .eq("id", qrId);
+
+  if (updateError) throw updateError;
+
+  return c.json({ message: "QR Code válido. Acesso autorizado." });
+});
+*/
+
+export default router;

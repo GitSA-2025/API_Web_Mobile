@@ -19,13 +19,16 @@
     "url": "https://github.com/GitSA-2025/API_Web/issues"
   },
   "homepage": "https://github.com/GitSA-2025/API_Web#readme",
+  "type": "module",
   "dependencies": {
     "@getbrevo/brevo": "^3.0.1",
+    "@supabase/supabase-js": "^2.80.0",
     "axios": "^1.11.0",
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "hono": "^4.10.4",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^7.0.5",
     "pg": "^8.16.3",

@@ -1,24 +1,15 @@
-require('dotenv').config();
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import authRoutes from "./routes/authRoutes.js";
+import appRoutes from "./routes/appRoutes.js";
 
-const express = require('express');
-const dotenv = require('dotenv');
-const { sequelize } = require('./models/index');
-const authRoutes = require ('./routes/authRoutes');
-const appRoutes = require ('./routes/appRoutes');
-const cors = require('cors');
+const app = new Hono();
 
-const app = express();
-dotenv.config();
+app.use("*", cors());
 
-app.use(cors());
-app.use(express.json());
-app.use('/api', authRoutes);
-app.use('/api/mobile', appRoutes);
-app.use('/qrcodes', express.static('public/qrcodes'));
+app.route("/api", authRoutes);
+app.route("/api/mobile", appRoutes);
 
-sequelize.sync().then(() => {
-    app.listen(3000, () => console.log('Servidor rodando na porta 3000'));
-});
+app.get("/", (c) => c.text("API rodando com sucesso no Cloudflare Workers 🚀"));
 
-console.log("EMAIL:", process.env.EMAIL_USER);
-console.log("SENHA:", process.env.EMAIL_PASS ? "OK" : "VAZIA");
+export default app;

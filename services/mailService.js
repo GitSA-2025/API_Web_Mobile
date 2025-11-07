@@ -1,13 +1,21 @@
-const Brevo = require('@getbrevo/brevo');
+import Brevo from "@getbrevo/brevo";
+
+const BREVO_API_KEY =
+  process?.env?.BREVO_API_KEY || globalThis?.env?.BREVO_API_KEY;
+const EMAIL_USER =
+  process?.env?.EMAIL_USER || globalThis?.env?.EMAIL_USER;
+
+if (!BREVO_API_KEY) {
+  console.warn("⚠️ BREVO_API_KEY não encontrada! Verifique o wrangler.toml ou o ambiente.");
+}
 
 const client = new Brevo.TransactionalEmailsApi();
+client.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, BREVO_API_KEY);
 
-client.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
-
-async function send2FACode(email, code) {
+export async function send2FACode(email, code) {
   try {
     const sendSmtpEmail = {
-      sender: { email: process.env.EMAIL_USER },
+      sender: { email: EMAIL_USER },
       to: [{ email }],
       subject: `${code} - Seu código de verificação do Crachá Online`,
       htmlContent: `
@@ -39,9 +47,7 @@ async function send2FACode(email, code) {
     await client.sendTransacEmail(sendSmtpEmail);
     console.log(`✅ E-mail enviado para ${email}`);
   } catch (err) {
-    console.error('❌ Erro ao enviar e-mail:', err);
+    console.error("❌ Erro ao enviar e-mail:", err);
     throw err;
   }
 }
-
-module.exports = { send2FACode };
