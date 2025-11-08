@@ -434,7 +434,7 @@ export async function exibirRegistroEntradaPorID(c) {
   const supabase = getSupabase(c.env);
 
   try {
-    const  idRegister  = c.req.param("idRegister");;
+    const  idRegister  = c.req.param("idRegister");
 
     const { data: registro, error } = await supabase
       .from("accessregister")
