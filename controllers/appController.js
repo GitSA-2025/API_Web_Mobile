@@ -157,7 +157,7 @@ async function criarRegistroEntrega(c) {
       return c.json({ error: 'Usuário não encontrado.' }, 400);
     }
 
-    const dados_user = user[0];
+    const dados_user = user;
 
     const { data, error } = await supabase
       .from("deliveryRegister")
@@ -239,7 +239,7 @@ async function criarRegistroEntrada(c) {
       return c.json({ error: 'Usuário logado não encontrado.' }, 404);
     }
 
-    const dados_user = user[0];
+    const dados_user = user;
 
     const { data, error } = await supabase
       .from("accessregister")
