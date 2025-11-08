@@ -1,24 +1,30 @@
 import jwt from "jsonwebtoken";
 
-export function authMiddleware(req, res, next) {
+export async function authMiddleware(c, next) {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader = c.req.header("authorization");
 
     if (!authHeader) {
-      return res.status(401).json({ error: "Token não fornecido." });
+      return c.json({ error: "Token não fornecido." }, 401);
     }
 
     const token = authHeader.split(" ")[1];
     if (!token) {
-      return res.status(401).json({ error: "Token inválido." });
+      return c.json({ error: "Token inválido." }, 401);
     }
 
-    const decoded = jwt.verify(token, globalThis.env.JWT_SECRET);
-    req.userId = decoded.id;
+    const decoded = jwt.verify(token, c.env.JWT_SECRET);
 
-    next();
+    c.set("userId", decoded.id);
+
+    await next();
   } catch (error) {
     console.error("Erro na autenticação JWT:", error);
-    return res.status(403).json({ error: "Token inválido ou expirado." });
+
+    if (error.name === "TokenExpiredError") {
+      return c.json({ error: "Token expirado." }, 401);
+    }
+
+    return c.json({ error: "Token inválido ou expirado." }, 403);
   }
 }

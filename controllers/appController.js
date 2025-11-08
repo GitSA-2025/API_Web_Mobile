@@ -260,7 +260,7 @@ async function criarRegistroEntrada(c) {
 async function exbirRegistrosEntrega(c) {
   try {
 
-    const { user_email } = c.req.json();
+    const { user_email } = await c.req.json();
 
     const { data: user } = await supabase
       .from("userweb")
@@ -289,7 +289,7 @@ async function exbirRegistrosEntrega(c) {
 async function exbirRegistrosEntrada(c) {
   try {
 
-    const { user_email } = c.req.json();
+    const { user_email } = await c.req.json();
 
     console.log(user_email);
 

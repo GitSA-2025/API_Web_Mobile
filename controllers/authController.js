@@ -13,7 +13,7 @@ const supabase = getSupabase();
 
 export async function cadastrar(c) {
   try {
-    const { nome, cpf, email, telefone, senha, tipo } =  c.req.json();
+    const { nome, cpf, email, telefone, senha, tipo } =  await c.req.json();
     const senhaHash = await bcrypt.hash(senha, 10);
     const codigo2FA = generate2FACode();
     const cpfHash = encrypt(cpf);
@@ -79,7 +79,7 @@ export async function verificar2FA(c) {
 
 export async function login(c) {
   try {
-    const { email, senha } = c.req.json();
+    const { email, senha } = await c.req.json();
 
     const { data: user } = await supabase
       .from("userweb")
@@ -106,7 +106,7 @@ export async function login(c) {
 
 export async function verConta(c) {
   try {
-    const { user_email } = c.req.json();
+    const { user_email } = await c.req.json();
 
     const { data: user } = await supabase
       .from("userweb")
@@ -144,7 +144,7 @@ export async function verConta(c) {
 
 export async function gerarQRCodeController(c) {
   try {
-    const { user_email } = c.req.json();
+    const { user_email } = await c.req.json();
 
     // Busca usuário
     const { data: dados_user, error: userError } = await supabase
