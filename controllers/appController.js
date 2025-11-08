@@ -69,7 +69,7 @@ async function verificar2FAAPP(c) {
   }
 
   await supabase
-    .from("userweb")
+    .from("userapp")
     .update({ verify2fa: true })
     .eq("id_user", user.id_user);
 
@@ -87,7 +87,7 @@ async function loginAPP(c) {
   const { email, senha } = await c.req.json();
 
   const { data: user } = await supabase
-    .from("userweb")
+    .from("userapp")
     .select("*")
     .eq("user_email", email)
     .single();
@@ -148,7 +148,7 @@ async function criarRegistroEntrega(c) {
 
 
     const { data: user } = await supabase
-      .from("userweb")
+      .from("userapp")
       .select("*")
       .eq("user_email", user_email)
       .single();
@@ -230,7 +230,7 @@ async function criarRegistroEntrada(c) {
     const hrentrada = hora_completa.split(':').slice(0, 3).join(':');
 
     const { data: user } = await supabase
-      .from("userweb")
+      .from("userapp")
       .select("*")
       .eq("user_email", user_email)
       .single();
@@ -281,7 +281,7 @@ async function exbirRegistrosEntrega(c) {
     const { user_email } = await c.req.json();
 
     const { data: user } = await supabase
-      .from("userweb")
+      .from("userapp")
       .select("*")
       .eq("user_email", user_email)
       .single();
@@ -315,7 +315,7 @@ async function exbirRegistrosEntrada(c) {
     console.log(user_email);
 
     const { data: user } = await supabase
-      .from("userweb")
+      .from("userapp")
       .select("*")
       .eq("user_email", user_email)
       .single();
