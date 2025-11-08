@@ -9,9 +9,11 @@ import { generateQRCode } from "../utils/generateQRCode.js";
 import { encrypt, decrypt } from "../lib/crypto.js";
 import { getSupabase } from "../db/db.js";
 
-const supabase = getSupabase(c.env);
 
 export async function cadastrar(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
     const { nome, cpf, email, telefone, senha, tipo } =  await c.req.json();
     const senhaHash = await bcrypt.hash(senha, 10);
@@ -48,6 +50,9 @@ export async function cadastrar(c) {
 }
 
 export async function verificar2FA(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
     const body = await c.req.json();
     const user_email = body.user_email || body.email;
@@ -78,6 +83,9 @@ export async function verificar2FA(c) {
 
 
 export async function login(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
     const { email, senha } = await c.req.json();
 
@@ -105,6 +113,9 @@ export async function login(c) {
 }
 
 export async function verConta(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
     const { user_email } = await c.req.json();
 
@@ -143,6 +154,9 @@ export async function verConta(c) {
 
 
 export async function gerarQRCodeController(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
     const { user_email } = await c.req.json();
 
@@ -311,8 +325,11 @@ export async function gerarQRCodeController(c) {
 }*/
 
 export async function gerarQrCodeComLink(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
-    const user_email = c.req.param("user_email");
+    const user_email = await c.req.param("user_email");
 
     const { data: dados_user, error } = await supabase
       .from("userweb")
@@ -481,8 +498,11 @@ export async function editarPerfil(req, res) {
 }*/
 
 export async function solicitarQRCode(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
-    const user_email = c.req.param("user_email");
+    const user_email = await c.req.param("user_email");
 
     const { data: user } = await supabase
       .from("userweb")

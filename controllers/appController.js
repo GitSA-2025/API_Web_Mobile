@@ -7,9 +7,12 @@ import { send2FACode } from "../services/mailService.js";
 import { getSupabase } from "../db/db.js";
 import { encrypt, decrypt } from "../lib/crypto.js";
 
-const supabase = getSupabase(c.env);
+
 
 async function cadastrarAPP(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
     const { nome, email, telefone, senha } = await c.req.json();
     const senhaHash = await bcrypt.hash(senha, 10);
@@ -50,6 +53,9 @@ async function cadastrarAPP(c) {
 
 
 async function verificar2FAAPP(c) {
+
+  const supabase = getSupabase(c.env);
+
   const { email, codigo } = await c.req.json();
 
   const { data: user, error } = supabase
@@ -75,6 +81,9 @@ async function verificar2FAAPP(c) {
 
 
 async function loginAPP(c) {
+
+  const supabase = getSupabase(c.env);
+
   const { email, senha } = await c.req.json();
 
   const { data: user } = await supabase
@@ -109,6 +118,9 @@ async function editarContaAPP(req, res) {
 }
 
 async function criarRegistroEntrega(c) {
+  
+  const supabase = getSupabase(c.env);
+
   try {
     const { nome, telefone, placa, industria, n_fiscal, user_email } = await c.req.json();
 
@@ -179,6 +191,9 @@ async function criarRegistroEntrega(c) {
 
 
 async function criarRegistroEntrada(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
     const { nome, tipo, cpf, placa, user_email } = await c.req.json();
 
@@ -258,6 +273,9 @@ async function criarRegistroEntrada(c) {
 }
 
 async function exbirRegistrosEntrega(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
 
     const { user_email } = await c.req.json();
@@ -287,6 +305,9 @@ async function exbirRegistrosEntrega(c) {
 }
 
 async function exbirRegistrosEntrada(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
 
     const { user_email } = await c.req.json();
@@ -334,6 +355,9 @@ async function verContaAPP(req, res) {
 }
 
 async function editarRegistroEntrada(c) {
+
+  const supabase = getSupabase(c.env);
+
   const { nome, tipo, cpf, placa } = await c.req.json();
   const idRegister = c.req.param("idRegister");
   try {
@@ -372,6 +396,9 @@ async function editarRegistroEntrada(c) {
 }
 
 async function editarRegistroEntrega(c) {
+
+  const supabase = getSupabase(c.env);
+
   const { nome, telefone, placa, n_fiscal } = await c.req.json();
   const idRegister = c.req.param("idRegister");
   try {
@@ -403,6 +430,9 @@ async function editarRegistroEntrega(c) {
 }
 
 export async function exibirRegistroEntradaPorID(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
     const  idRegister  = c.req.param("idRegister");;
 
@@ -442,6 +472,9 @@ export async function exibirRegistroEntradaPorID(c) {
 }
 
 export async function exibirRegistroEntregaPorID(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
      const idRegister = c.req.param("idRegister");
 
@@ -474,6 +507,9 @@ export async function exibirRegistroEntregaPorID(c) {
 }
 
 export async function marcarSaidaRegistroEntrada(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
      const idRegister = c.req.param("idRegister");
 
@@ -507,6 +543,9 @@ export async function marcarSaidaRegistroEntrada(c) {
 }
 
 export async function deletarRegistroEntrada(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
      const idRegister = c.req.param("idRegister");
 
@@ -530,6 +569,9 @@ export async function deletarRegistroEntrada(c) {
 }
 
 async function deletarRegistroEntrega(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
      const idRegister = c.req.param("idRegister");
 
@@ -571,6 +613,9 @@ export async function getUserByEmail(user_email) {
 
 
 export async function filtrarEntregas(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
     const { user_email, filtro } = await c.req.json();
 
@@ -621,6 +666,9 @@ export async function filtrarEntregas(c) {
 }
 
 export async function filtrarEntradas(c) {
+  
+  const supabase = getSupabase(c.env);
+
   try {
     const { user_email, filtro } = await c.req.json();
 
@@ -660,6 +708,9 @@ export async function filtrarEntradas(c) {
 }
 
 export async function geradorDeGraficoIA(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
     const { dataInicio, dataFim } = await c.req.json();
 
@@ -702,6 +753,9 @@ export async function geradorDeGraficoIA(c) {
 
 
 export async function aprovacaoQRCode(c) {
+
+  const supabase = getSupabase(c.env);
+
   try {
     const { user_email, decisao } = await c.req.json();
     const  id_request  = c.req.param("id_request");
@@ -734,6 +788,9 @@ export async function aprovacaoQRCode(c) {
 }
 
 export async function verSolicitacoes(c) {
+
+  const supabase = getSupabase(c.env);
+  
   try {
     const { data: solicitacoes, error } = await supabase
       .from("qrcode_requests")
