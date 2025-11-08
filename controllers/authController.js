@@ -9,7 +9,7 @@ import { generateQRCode } from "../utils/generateQRCode.js";
 import { encrypt, decrypt } from "../lib/crypto.js";
 import { getSupabase } from "../db/db.js";
 
-const supabase = getSupabase();
+const supabase = getSupabase(c.env);
 
 export async function cadastrar(c) {
   try {

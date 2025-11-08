@@ -4,23 +4,27 @@ let supabase;
 
 /**
  * Retorna uma instância única do cliente Supabase.
- * - Usa SERVICE_ROLE_KEY no backend (Hono, Node.js)
+ * - Usa SERVICE_ROLE_KEY no backend (Hono, Cloudflare Workers)
  * - Usa ANON_KEY no frontend (browser)
  */
-export function getSupabase(env = process.env) {
+export function getSupabase(env) {
   if (supabase) return supabase;
+
+  if (!env) {
+    throw new Error("❌ Variável 'env' não foi passada para getSupabase().");
+  }
 
   const isServer = typeof window === "undefined";
   const url = env.SUPABASE_URL;
 
-  // ⚙️ Se for backend (Node/Hono), usa a chave mais poderosa
+  // ⚙️ Se for backend (Cloudflare/Hono), usa a chave mais poderosa
   const key = isServer
     ? env.SUPABASE_SERVICE_ROLE_KEY
     : env.SUPABASE_ANON_KEY;
 
   if (!url || !key) {
     throw new Error(
-      "❌ SUPABASE_URL ou SUPABASE_KEY ausente. Verifique suas variáveis de ambiente."
+      "❌ SUPABASE_URL ou SUPABASE_KEY ausente. Verifique suas variáveis de ambiente no Cloudflare."
     );
   }
 

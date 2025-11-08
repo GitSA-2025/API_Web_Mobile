@@ -7,7 +7,7 @@ import { send2FACode } from "../services/mailService.js";
 import { getSupabase } from "../db/db.js";
 import { encrypt, decrypt } from "../lib/crypto.js";
 
-const supabase = getSupabase();
+const supabase = getSupabase(c.env);
 
 async function cadastrarAPP(c) {
   try {
