@@ -359,7 +359,7 @@ async function editarRegistroEntrada(c) {
   const supabase = getSupabase(c.env);
 
   const { nome, tipo, cpf, placa } = await c.req.json();
-  const idRegister = c.req.param("idRegister");
+  const idRegister = c.req.param("idregister");
   try {
     const cpfRegex = /^\d{11}$/;
     if (!cpfRegex.test(cpf)) {
@@ -378,7 +378,7 @@ async function editarRegistroEntrada(c) {
         cpf: cpfHast,
         car_plate: verifPlaca,
       })
-      .eq("idRegister", idRegister)
+      .eq("idregister", idRegister)
       .select()
       .single();
 
@@ -400,7 +400,7 @@ async function editarRegistroEntrega(c) {
   const supabase = getSupabase(c.env);
 
   const { nome, telefone, placa, n_fiscal } = await c.req.json();
-  const idRegister = c.req.param("idRegister");
+  const idRegister = c.req.param("idregister");
   try {
 
     const { data, error } = await supabase
@@ -411,7 +411,7 @@ async function editarRegistroEntrega(c) {
         plate_vehicle: placa,
         n_fiscal: n_fiscal,
       })
-      .eq("idRegister", idRegister)
+      .eq("idregister", idRegister)
       .select()
       .single();
 
@@ -434,12 +434,12 @@ export async function exibirRegistroEntradaPorID(c) {
   const supabase = getSupabase(c.env);
 
   try {
-    const  idRegister  = c.req.param("idRegister");
+    const  idRegister  = await c.req.param("idregister");
 
     const { data: registro, error } = await supabase
       .from("accessregister")
       .select("*")
-      .eq("idRegister", idRegister)
+      .eq("idregister", idRegister)
       .single();
 
       
@@ -479,12 +479,12 @@ export async function exibirRegistroEntregaPorID(c) {
   const supabase = getSupabase(c.env);
 
   try {
-     const idRegister = c.req.param("idRegister");
+     const idRegister = await c.req.param("idregister");
 
     const { data: registro, error } = await supabase
       .from("deliveryRegister")
       .select("*")
-      .eq("idRegister", idRegister)
+      .eq("idregister", idRegister)
       .single();
 
     if (error?.code === "PGRST116" || !registro) {
@@ -514,7 +514,7 @@ export async function marcarSaidaRegistroEntrada(c) {
   const supabase = getSupabase(c.env);
 
   try {
-     const idRegister = c.req.param("idRegister");
+     const idRegister = await c.req.param("idRegister");
 
     const agora_brasil = new Date().toLocaleTimeString("pt-BR", {
       timeZone: "America/Sao_Paulo",
@@ -529,7 +529,7 @@ export async function marcarSaidaRegistroEntrada(c) {
     const { data, error } = await supabase
       .from("accessregister")
       .update({ hr_exit: hrsaida })
-      .eq("idRegister", idRegister)
+      .eq("idregister", idRegister)
       .select()
       .single();
 
@@ -555,7 +555,7 @@ export async function deletarRegistroEntrada(c) {
     const { data, error } = await supabase
       .from("accessregister")
       .delete()
-      .eq("idRegister", idRegister)
+      .eq("idregister", idRegister)
       .select()
       .single();
 
@@ -581,7 +581,7 @@ async function deletarRegistroEntrega(c) {
     const { data, error } = await supabase
       .from("deliveryRegister")
       .delete()
-      .eq("idRegister", idRegister)
+      .eq("idregister", idRegister)
       .select()
       .single();
 

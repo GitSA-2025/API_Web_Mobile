@@ -40,38 +40,38 @@ router.post("/app/criarRegistroEntrega", authMiddleware, async (c) => await cria
 router.get("/app/verConta", authMiddleware, async (c) => await verContaAPP(c));
 router.post("/app/editarConta", authMiddleware, async (c) => await editarContaAPP(c));
 
-router.post("/app/editarRegistroEntrada/:idRegister", authMiddleware, async (c) => {
-  const idRegister = c.req.param("idRegister");
+router.post("/app/editarRegistroEntrada/:idregister", authMiddleware, async (c) => {
+  const idRegister = c.req.param("idregister");
   return await editarRegistroEntrada(c, idRegister);
 });
 
-router.post("/app/editarRegistroEntrega/:idRegister", authMiddleware, async (c) => {
-  const idRegister = c.req.param("idRegister");
+router.post("/app/editarRegistroEntrega/:idregister", authMiddleware, async (c) => {
+  const idRegister = c.req.param("idregister");
   return await editarRegistroEntrega(c, idRegister);
 });
 
-router.get("/app/exibirEntradas/:idRegister", authMiddleware, async (c) => {
-  const idRegister = c.req.param("idRegister");
+router.get("/app/exibirEntradas/:idregister", authMiddleware, async (c) => {
+  const idRegister = c.req.param("idregister");
   return await exibirRegistroEntradaPorID(c, idRegister);
 });
 
-router.get("/app/exibirEntregas/:idRegister", authMiddleware, async (c) => {
-  const idRegister = c.req.param("idRegister");
+router.get("/app/exibirEntregas/:idregister", authMiddleware, async (c) => {
+  const idRegister = c.req.param("idregister");
   return await exibirRegistroEntregaPorID(c, idRegister);
 });
 
 router.get("/app/marcarSaidaRegistroEntrada/:idRegister", authMiddleware, async (c) => {
-  const idRegister = c.req.param("idRegister");
+  const idRegister = c.req.param("idregister");
   return await marcarSaidaRegistroEntrada(c, idRegister);
 });
 
-router.get("/app/deletarRegistroEntrada/:idRegister", authMiddleware, async (c) => {
-  const idRegister = c.req.param("idRegister");
+router.get("/app/deletarRegistroEntrada/:idregister", authMiddleware, async (c) => {
+  const idRegister = c.req.param("idregister");
   return await deletarRegistroEntrada(c, idRegister);
 });
 
-router.get("/app/deletarRegistroEntrega/:idRegister", authMiddleware, async (c) => {
-  const idRegister = c.req.param("idRegister");
+router.get("/app/deletarRegistroEntrega/:idregister", authMiddleware, async (c) => {
+  const idRegister = c.req.param("idregister");
   return await deletarRegistroEntrega(c, idRegister);
 });
 
