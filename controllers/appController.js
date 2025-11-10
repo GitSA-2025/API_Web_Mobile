@@ -442,9 +442,10 @@ export async function exibirRegistroEntradaPorID(c) {
       .eq("idRegister", idRegister)
       .single();
 
-      console.log(registro);
+      
 
     if (error?.code === "PGRST116" || !registro) {
+      console.log(registro);
       return c.json({ error: "Registro de entrada não encontrado." }, 404);
     }
 
