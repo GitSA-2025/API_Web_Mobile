@@ -60,7 +60,7 @@ router.get("/app/exibirEntregas/:idregister", authMiddleware, async (c) => {
   return await exibirRegistroEntregaPorID(c, idRegister);
 });
 
-router.get("/app/marcarSaidaRegistroEntrada/:idRegister", authMiddleware, async (c) => {
+router.get("/app/marcarSaidaRegistroEntrada/:idregister", authMiddleware, async (c) => {
   const idRegister = c.req.param("idregister");
   return await marcarSaidaRegistroEntrada(c, idRegister);
 });

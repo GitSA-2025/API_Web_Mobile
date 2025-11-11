@@ -160,7 +160,7 @@ async function criarRegistroEntrega(c) {
     const dados_user = user;
 
     const { data, error } = await supabase
-      .from("deliveryRegister")
+      .from("deliveryregister")
       .insert([
         {
           name: nome,
@@ -287,7 +287,7 @@ async function exbirRegistrosEntrega(c) {
       .single();
 
     const { data: entregas, error: entregaError } = await supabase
-      .from("deliveryRegister")
+      .from("deliveryregister")
       .select("*")
       .eq("iduser", user.id_user)
       .order("date", { ascending: false })
@@ -404,7 +404,7 @@ async function editarRegistroEntrega(c) {
   try {
 
     const { data, error } = await supabase
-      .from("deliveryRegister")
+      .from("deliveryregister")
       .update({
         name: nome,
         phone: telefone,
@@ -477,7 +477,7 @@ export async function exibirRegistroEntregaPorID(c) {
     const idRegister = await c.req.param("idregister");
 
     const { data: registro, error } = await supabase
-      .from("deliveryRegister")
+      .from("deliveryregister")
       .select("*")
       .eq("idregister", idRegister)
       .single();
@@ -509,7 +509,7 @@ export async function marcarSaidaRegistroEntrada(c) {
   const supabase = getSupabase(c.env);
 
   try {
-    const idRegister = await c.req.param("idRegister");
+    const idRegister = await c.req.param("idregister");
 
     const agora_brasil = new Date().toLocaleTimeString("pt-BR", {
       timeZone: "America/Sao_Paulo",
@@ -545,7 +545,7 @@ export async function deletarRegistroEntrada(c) {
   const supabase = getSupabase(c.env);
 
   try {
-    const idRegister = c.req.param("idRegister");
+    const idRegister = c.req.param("idregister");
 
     const { data, error } = await supabase
       .from("accessregister")
@@ -571,7 +571,7 @@ async function deletarRegistroEntrega(c) {
   const supabase = getSupabase(c.env);
 
   try {
-    const idRegister = c.req.param("idRegister");
+    const idRegister = c.req.param("idregister");
 
     const { data, error } = await supabase
       .from("deliveryRegister")
