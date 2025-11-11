@@ -92,7 +92,7 @@ async function loginAPP(c) {
     .eq("user_email", email)
     .single();
 
-    console.log(senha);
+  console.log(senha);
 
   if (!user || !(await bcrypt.compare(senha, user.user_password))) return c.json({ error: "Credenciais inválidas." }, 401);
   if (!user.verify2fa) return c.json({ error: "2FA não verificado." }, 403);
@@ -118,7 +118,7 @@ async function editarContaAPP(req, res) {
 }
 
 async function criarRegistroEntrega(c) {
-  
+
   const supabase = getSupabase(c.env);
 
   try {
@@ -185,7 +185,7 @@ async function criarRegistroEntrega(c) {
 
   } catch (err) {
     console.error('Erro no registro de entrega:', err);
-    return c.json({ error: 'Erro ao registrar a entrega. Detalhes no terminal.' }, 500);
+    return c.json({ error: 'Erro ao registrar a entrega. Detalhes no terminal.', msg: err }, 500);
   }
 }
 
@@ -198,14 +198,14 @@ async function criarRegistroEntrada(c) {
     const { nome, tipo, cpf, placa, user_email } = await c.req.json();
 
     if (!nome || !tipo || !cpf) {
-      return c.json({error: 'Nome, tipo de pessoa e CPF estão em branco. Preencha os campos corretamente.'}, 400);
+      return c.json({ error: 'Nome, tipo de pessoa e CPF estão em branco. Preencha os campos corretamente.' }, 400);
     }
 
     const verifPlaca = placa && placa.trim() !== '' ? placa.trim() : 'Não se aplica.';
 
     const cpfRegex = /^\d{11}$/;
     if (!cpfRegex.test(cpf)) {
-      return c.json({error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.'}, 400);
+      return c.json({ error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.' }, 400);
     }
 
     const cpfHast = encrypt(cpf);
@@ -363,7 +363,7 @@ async function editarRegistroEntrada(c) {
   try {
     const cpfRegex = /^\d{11}$/;
     if (!cpfRegex.test(cpf)) {
-      return c.json({error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.'}, 400);
+      return c.json({ error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.' }, 400);
     }
 
     const cpfHast = encrypt(cpf);
@@ -434,7 +434,7 @@ export async function exibirRegistroEntradaPorID(c) {
   const supabase = getSupabase(c.env);
 
   try {
-    const  idRegister  = await c.req.param("idregister");
+    const idRegister = await c.req.param("idregister");
 
     const { data: registro, error } = await supabase
       .from("accessregister")
@@ -442,7 +442,7 @@ export async function exibirRegistroEntradaPorID(c) {
       .eq("idregister", idRegister)
       .single();
 
-      
+
 
     if (error?.code === "PGRST116" || !registro) {
       console.log(registro);
@@ -451,12 +451,7 @@ export async function exibirRegistroEntradaPorID(c) {
 
     if (error) throw error;
 
-    let cpfVisivel = "CPF não disponível";
-    try {
-      cpfVisivel = decrypt(registro.cpf);
-    } catch (err) {
-      console.warn("Falha ao descriptografar CPF:", err);
-    }
+    const cpfVisivel = decrypt(registro.cpf);
 
     return c.json({
       idRegister: registro.idRegister,
@@ -479,7 +474,7 @@ export async function exibirRegistroEntregaPorID(c) {
   const supabase = getSupabase(c.env);
 
   try {
-     const idRegister = await c.req.param("idregister");
+    const idRegister = await c.req.param("idregister");
 
     const { data: registro, error } = await supabase
       .from("deliveryRegister")
@@ -514,7 +509,7 @@ export async function marcarSaidaRegistroEntrada(c) {
   const supabase = getSupabase(c.env);
 
   try {
-     const idRegister = await c.req.param("idRegister");
+    const idRegister = await c.req.param("idRegister");
 
     const agora_brasil = new Date().toLocaleTimeString("pt-BR", {
       timeZone: "America/Sao_Paulo",
@@ -550,7 +545,7 @@ export async function deletarRegistroEntrada(c) {
   const supabase = getSupabase(c.env);
 
   try {
-     const idRegister = c.req.param("idRegister");
+    const idRegister = c.req.param("idRegister");
 
     const { data, error } = await supabase
       .from("accessregister")
@@ -576,7 +571,7 @@ async function deletarRegistroEntrega(c) {
   const supabase = getSupabase(c.env);
 
   try {
-     const idRegister = c.req.param("idRegister");
+    const idRegister = c.req.param("idRegister");
 
     const { data, error } = await supabase
       .from("deliveryRegister")
@@ -669,7 +664,7 @@ export async function filtrarEntregas(c) {
 }
 
 export async function filtrarEntradas(c) {
-  
+
   const supabase = getSupabase(c.env);
 
   try {
@@ -761,7 +756,7 @@ export async function aprovacaoQRCode(c) {
 
   try {
     const { user_email, decisao } = await c.req.json();
-    const  id_request  = c.req.param("id_request");
+    const id_request = c.req.param("id_request");
 
     const dados_user = await getUserByEmail(user_email);
     if (!dados_user) {
@@ -793,7 +788,7 @@ export async function aprovacaoQRCode(c) {
 export async function verSolicitacoes(c) {
 
   const supabase = getSupabase(c.env);
-  
+
   try {
     const { data: solicitacoes, error } = await supabase
       .from("qrcode_requests")
