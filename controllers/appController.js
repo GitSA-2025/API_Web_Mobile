@@ -451,10 +451,10 @@ export async function exibirRegistroEntradaPorID(c) {
 
     if (error) throw error;
 
-    const cpfVisivel = decrypt(registro.cpf);
+    const cpfVisivel = await decrypt(registro.cpf);
 
     console.log(cpfVisivel);
-    
+
 
     return c.json({
       idRegister: registro.idRegister,
