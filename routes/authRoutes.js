@@ -23,15 +23,9 @@ router.post("/login", async (c) => await login(c));
 // --- Rotas protegidas ---
 router.post("/conta", authMiddleware, async (c) => await verConta(c));
 
-router.get("/gerar-qrcode/:user_email", authMiddleware, async (c) => {
-  const user_email = c.req.param("user_email");
-  return await gerarQRCodeController(c, user_email);
-});
+router.post("/gerar-qrcode", authMiddleware, async (c) => await gerarQRCodeController(c));
 
-router.get("/gerar-qrcode-link/:user_email", authMiddleware, async (c) => {
-  const user_email = c.req.param("user_email");
-  return await gerarQrCodeComLink(c, user_email);
-});
+router.post("/gerar-qrcode-link", authMiddleware, async (c) =>  await gerarQrCodeComLink(c));
 
 router.put("/editar-perfil", authMiddleware, async (c) => await editarPerfil(c));
 router.put("/trocar-senha", authMiddleware, async (c) => await trocarSenha(c));
