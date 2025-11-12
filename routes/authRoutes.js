@@ -21,10 +21,7 @@ router.post("/verificar-2fa", async (c) => await verificar2FA(c));
 router.post("/login", async (c) => await login(c));
 
 // --- Rotas protegidas ---
-router.get("/conta/:user_email", authMiddleware, async (c) => {
-  const user_email = c.req.param("user_email");
-  return await verConta(c, user_email);
-});
+router.post("/conta", authMiddleware, async (c) => await verConta(c));
 
 router.get("/gerar-qrcode/:user_email", authMiddleware, async (c) => {
   const user_email = c.req.param("user_email");
