@@ -711,9 +711,16 @@ export async function geradorDeGraficoIA(c) {
 
   try {
 
-    const body = await c.req.json();
-    console.log("Body recebido:", body);
-    const { dataInicio, dataFim } = body;
+    let body;
+
+    try {
+      body = await c.req.json();
+      console.log("Body recebido:", body);
+    } catch (e) {
+      console.error("Erro ao ler o JSON do body:", e);
+    }
+
+    const { dataInicio, dataFim } = body || {};
 
     if (!dataInicio || !dataFim) {
       return c.json({ erro: "Datas não informadas" }, 400);
