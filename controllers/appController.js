@@ -710,7 +710,10 @@ export async function geradorDeGraficoIA(c) {
   const supabase = getSupabase(c.env);
 
   try {
-    const { dataInicio, dataFim } = await c.req.json();
+
+    const body = await c.req.json();
+    console.log("Body recebido:", body);
+    const { dataInicio, dataFim } = body;
 
     if (!dataInicio || !dataFim) {
       return c.json({ erro: "Datas não informadas" }, 400);
