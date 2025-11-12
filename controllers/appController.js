@@ -726,7 +726,7 @@ export async function geradorDeGraficoIA(c) {
 
     const { data: entregas, error: erroEntregas } = await supabase
       .from("deliveryregister")
-      .select("idRegister")
+      .select("idregister")
       .gte("date", dataInicio)
       .lte("date", dataFim);
 
