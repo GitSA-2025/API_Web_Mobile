@@ -2,7 +2,6 @@ require('dotenv').config();
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import axios from "axios";
 import { generate2FACode } from "../utils/generate2FACode.js";
 import { send2FACode } from "../services/mailService.js";
 import { generateQRCode } from "../utils/generateQRCode.js";
@@ -101,7 +100,7 @@ export async function login(c) {
     if (!user.verify2fa)
       return c.json({ error: "2FA não verificado" }, 403);
 
-    const token = jwt.sign({ id: user.id_user }, globalThis.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user.id_user }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
 
