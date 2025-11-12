@@ -178,7 +178,7 @@ async function criarRegistroEntrega(c) {
 
     if (error) throw error;
 
-    c.json({
+    return c.json({
       message: 'Registro cadastrado!',
       registro_entrega: data[0],
     }, 201);
