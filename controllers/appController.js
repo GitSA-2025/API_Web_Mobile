@@ -453,6 +453,9 @@ export async function exibirRegistroEntradaPorID(c) {
 
     const cpfVisivel = decrypt(registro.cpf);
 
+    console.log(cpfVisivel);
+    
+
     return c.json({
       idRegister: registro.idRegister,
       nome: registro.name,
