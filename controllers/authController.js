@@ -17,7 +17,7 @@ export async function cadastrar(c) {
     const { nome, cpf, email, telefone, senha, tipo } =  await c.req.json();
     const senhaHash = await bcrypt.hash(senha, 10);
     const codigo2FA = generate2FACode();
-    const cpfHash = encrypt(cpf);
+    const cpfHash = await encrypt(cpf);
 
     const { data, error } = await supabase
       .from("userweb")
