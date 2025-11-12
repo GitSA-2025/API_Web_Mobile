@@ -126,25 +126,23 @@ export async function verConta(c) {
 
     if (!user) return c.json({ error: "Usuário não encontrado." }, 404);
 
-    if (user.cpf) {
-      try {
-        user.cpf = decrypt(user.cpf);
-      } catch {
-        console.warn("Falha ao descriptografar CPF");
-      }
+    let cpfVisivel;
+    try {
+      cpfVisivel = await decrypt(user.cpf);
+    } catch (e) {
+      console.warn("Erro ao descriptografar CPF:", e.message);
+      cpfVisivel = "Indisponível";
     }
 
-    const payload = {
+    return c.json({
       id_user: user.id_user,
       name: user.name,
-      cpf: user.cpf,
+      cpf: cpfVisivel,
       user_email: user.user_email,
       phone: user.phone,
       type_user: user.type_user,
       verify2fa: user.verify2fa,
-    };
-
-    return c.json(payload);
+    });
   } catch (err) {
     console.error("Erro ao buscar conta:", err);
     return c.json({ error: "Erro ao buscar conta." }, 500);
