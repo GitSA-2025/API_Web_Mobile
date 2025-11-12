@@ -752,7 +752,7 @@ export async function geradorDeGraficoIA(c) {
       { label: "Entregadores", value: totalEntregadores },
     ];
 
-    return c.json(grafico);
+    return c.json({ grafico });
   } catch (err) {
     console.error("Erro ao gerar gráfico com IA:", err);
     return c.json({ erro: "Erro interno ao gerar gráfico com IA" }, 500);
