@@ -583,7 +583,7 @@ async function deletarRegistroEntrega(c) {
     const idRegister = c.req.param("idregister");
 
     const { data, error } = await supabase
-      .from("deliveryRegister")
+      .from("deliveryregister")
       .delete()
       .eq("idregister", idRegister)
       .select()
