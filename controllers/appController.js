@@ -166,7 +166,7 @@ async function criarRegistroEntrega(c) {
           name: nome,
           phone: telefone,
           date: data_formatada,
-          hy_entry: hrentrada,
+          hr_entry: hrentrada,
           plate_vehicle: placa,
           industry: industria,
           n_fiscal: n_fiscal,
