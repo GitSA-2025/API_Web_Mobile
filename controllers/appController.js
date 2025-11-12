@@ -208,7 +208,7 @@ async function criarRegistroEntrada(c) {
       return c.json({ error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.' }, 400);
     }
 
-    const cpfHast = encrypt(cpf);
+    const cpfHast = await encrypt(cpf);
 
     const agora_brasil = new Date().toLocaleTimeString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
@@ -366,7 +366,7 @@ async function editarRegistroEntrada(c) {
       return c.json({ error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.' }, 400);
     }
 
-    const cpfHast = encrypt(cpf);
+    const cpfHast = await encrypt(cpf);
 
     const verifPlaca = placa && placa.trim() !== '' ? placa.trim() : 'Não se aplica.';
 
