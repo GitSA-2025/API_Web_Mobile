@@ -451,7 +451,13 @@ export async function exibirRegistroEntradaPorID(c) {
 
     if (error) throw error;
 
-    const cpfVisivel = await decrypt(registro.cpf);
+    let cpfVisivel;
+    try {
+      cpfVisivel = await decrypt(registro.cpf);
+    } catch (e) {
+      console.warn("Erro ao descriptografar CPF:", e.message);
+      cpfVisivel = "Indisponível";
+    }
 
     console.log(cpfVisivel);
 
