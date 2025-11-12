@@ -118,15 +118,14 @@ async function editarContaAPP(req, res) {
 }
 
 async function criarRegistroEntrega(c) {
-
   const supabase = getSupabase(c.env);
 
   try {
     const { nome, telefone, placa, industria, n_fiscal, user_email } = await c.req.json();
 
-    console.log("Dados recebidos:", c.body);
+    console.log("Dados recebidos:", { nome, telefone, placa, industria, n_fiscal, user_email });
 
-    const agora_brasil = new Date().toLocaleTimeString('pt-BR', {
+    const agora_brasil = new Date().toLocaleString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
       year: 'numeric',
       month: '2-digit',
@@ -138,26 +137,21 @@ async function criarRegistroEntrega(c) {
     });
 
     const [data_formatada_hora, hora_completa] = agora_brasil.split(', ');
-
     const data_formatada = data_formatada_hora.replace(/\//g, '-');
-
     const hrentrada = hora_completa.split(':').slice(0, 3).join(':');
 
     console.log(`Data formatada (dd-mm-aaaa): ${data_formatada}`);
     console.log(`Hora (BRT/BRST): ${hrentrada}`);
 
-
-    const { data: user } = await supabase
+    const { data: user, error: userErr } = await supabase
       .from("userapp")
       .select("*")
       .eq("user_email", user_email)
       .single();
 
-    if (!user || user.length === 0) {
+    if (userErr || !user) {
       return c.json({ error: 'Usuário não encontrado.' }, 400);
     }
-
-    const dados_user = user;
 
     const { data, error } = await supabase
       .from("deliveryregister")
@@ -170,7 +164,7 @@ async function criarRegistroEntrega(c) {
           plate_vehicle: placa,
           industry: industria,
           n_fiscal: n_fiscal,
-          iduser: dados_user.id_user,
+          iduser: user.id_user,
           type: 'entregador'
         }
       ])
@@ -178,14 +172,20 @@ async function criarRegistroEntrega(c) {
 
     if (error) throw error;
 
-    return c.json({
-      message: 'Registro cadastrado!',
-      registro_entrega: data[0],
-    }, 201);
+    return c.json(
+      {
+        message: 'Registro cadastrado!',
+        registro_entrega: data[0],
+      },
+      201
+    );
 
   } catch (err) {
     console.error('Erro no registro de entrega:', err);
-    return c.json({ error: 'Erro ao registrar a entrega. Detalhes no terminal.', msg: err }, 500);
+    return c.json(
+      { error: 'Erro ao registrar a entrega.', details: err.message },
+      500
+    );
   }
 }
 
