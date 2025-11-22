@@ -605,6 +605,9 @@ async function deletarRegistroEntrega(c) {
 }
 
 export async function getUserByEmail(user_email) {
+
+  const supabase = getSupabase(c.env);
+  
   try {
     const { data: user, error } = await supabase
       .from("userapp")
