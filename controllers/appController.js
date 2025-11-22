@@ -796,7 +796,7 @@ export async function aprovacaoQRCode(c) {
     const { data, error } = await supabase
       .from("qrcode_requests")
       .update({
-        id_approver: dados_user.id_user,
+        id_approver: user.id_user,
         status: decisao,
       })
       .eq("id", id_request)
