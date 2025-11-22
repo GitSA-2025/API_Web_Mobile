@@ -213,19 +213,6 @@ export async function gerarQRCodeController(c) {
 
     // --- STATUS APROVADO ---
     if (solicitacao.status === "aprovado") {
-      const payload = {
-        id_user: dados_user.id_user,
-        name: dados_user.name,
-        cpf: dados_user.cpf,
-        user_email: dados_user.user_email,
-        phone: dados_user.phone,
-        type_user: dados_user.type_user,
-        verify2fa: dados_user.verify2fa,
-      };
-
-      const qrCode = await generateQRCode(payload);
-
-      const qrCodeFile = await generateQRCodeAsFile(payload);
 
 
       // Remove solicitação usada
@@ -236,38 +223,46 @@ export async function gerarQRCodeController(c) {
 
       if (delError) throw delError;
 
-       return c.json({
-        qrCode: qrCodeFile.dataUrl,
-        status: "aprovado"
+      return c.json({
+        status: "aprovado",
+        userData: {
+          id_user: dados_user.id_user,
+          name: dados_user.name,
+          cpf: dados_user.cpf,
+          user_email: dados_user.user_email,
+          phone: dados_user.phone,
+          type_user: dados_user.type_user,
+          verify2fa: dados_user.verify2fa
+        }
       });
-    }
+  }
 
     // --- STATUS PENDENTE ---
     if (solicitacao.status === "pendente") {
-      return c.json({
-        status: "pendente",
-        message: "Solicitação pendente de aprovação do porteiro.",
-      }, 200);
-    }
-
-    // --- STATUS NEGADO ---
-    if (solicitacao.status === "negado") {
-      await supabase
-        .from("qrcode_requests")
-        .delete()
-        .eq("id_requester", dados_user.id_user);
-
-      return c.json({
-        status: "negado",
-        error:
-          "Sua solicitação foi negada. Por favor, faça uma nova solicitação.",
-      }, 403);
-    }
-
-  } catch (err) {
-    console.error("Erro ao gerar QRCode:", err);
-    return c.json({ error: "Erro ao gerar QRCode. Erro interno." }, 500);
+    return c.json({
+      status: "pendente",
+      message: "Solicitação pendente de aprovação do porteiro.",
+    }, 200);
   }
+
+  // --- STATUS NEGADO ---
+  if (solicitacao.status === "negado") {
+    await supabase
+      .from("qrcode_requests")
+      .delete()
+      .eq("id_requester", dados_user.id_user);
+
+    return c.json({
+      status: "negado",
+      error:
+        "Sua solicitação foi negada. Por favor, faça uma nova solicitação.",
+    }, 403);
+  }
+
+} catch (err) {
+  console.error("Erro ao gerar QRCode:", err);
+  return c.json({ error: "Erro ao gerar QRCode. Erro interno." }, 500);
+}
 }
 
 
