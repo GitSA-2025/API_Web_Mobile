@@ -320,6 +320,8 @@ async function exbirRegistrosEntrada(c) {
       .eq("user_email", user_email)
       .single();
 
+    await fecharRegistrosEntradas(supabase);
+
     const { data: entradas, error: entradaError } = await supabase
       .from("accessregister")
       .select("*")
@@ -843,6 +845,49 @@ export async function verSolicitacoes(c) {
   } catch (err) {
     console.error("Erro ao ver as solicitações de QRCode:", err);
     return c.json({ error: "Erro interno ao processar solicitações de QRCode." }, 500);
+  }
+}
+
+async function fecharRegistrosEntradas(supabase) {
+  try {
+    const agora = new DataTransfer(
+      new Date().toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo"
+      })
+    );
+
+    const { data: registros, error } = await supabase
+      .from('accessregister')
+      .select('*')
+      .or('hr_exit.is.null,hr_exit.eq.-');
+
+    if (error) {
+      console.error("Erro ao buscar registros:", error);
+      return;
+    }
+
+    for (const reg of registros) {
+      if (!reg.hr_entry || !reg.date_access) continue;
+
+      const entrada = new Date(`${reg.date_access}T${reg.hr_entry}`);
+
+      const diffMs = agora - entrada;
+      const diffHoras = diffMs / (1000 * 60 * 60);
+
+      if (diffHoras >= 6) {
+        await supabase
+          .from('accessregister')
+          .update({
+            hr_exit: agora.toTimeString().slice(0, 8)
+          })
+          .eq('idregister', reg.idregister);
+
+        console.log(`✅ Saída automática registrada: ${reg.idregister}`);
+      }
+    }
+
+  } catch (err) {
+    console.error("Erro ao fechar registros:", err);
   }
 }
 
