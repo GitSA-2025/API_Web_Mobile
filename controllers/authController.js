@@ -155,7 +155,24 @@ export async function gerarQRCodeController(c) {
   const supabase = getSupabase(c.env);
 
   try {
-    const { user_email } = await c.req.json();
+    let user_email = null;
+
+    // Se vier via POST (body JSON)
+    if (c.req.method === "POST") {
+      const body = await c.req.json();
+      user_email = body?.user_email;
+    }
+
+    // Se vier via GET (query string)
+    if (c.req.method === "GET") {
+      const url = new URL(c.req.url);
+      user_email = url.searchParams.get("email");
+    }
+
+    if (!user_email) {
+      return c.json({ error: "Email não informado." }, 400);
+    }
+
 
     // Busca usuário
     const { data: dados_user, error: userError } = await supabase
@@ -364,7 +381,7 @@ export async function gerarQrCodeComLink(c) {
       qrCode: `data:image/svg+xml;base64,${btoa(qrCodeSvg)}`,
       status: "aprovado"
     });
-    
+
   } catch (err) {
     console.error("Erro ao gerar QR Code:", err);
     return c.json({ error: "Erro ao gerar QRCode." }, 500);
