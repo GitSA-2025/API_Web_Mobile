@@ -785,15 +785,13 @@ export async function aprovacaoQRCode(c) {
       return c.json({ error: "ID da solicitação não informado." }, 400);
     }
 
-    const { data: dados_user, error: userError } = await supabase
-      .from("users")
-      .select("id_user")
-      .eq("email", user_email)
-      .single();
+    console.log(user_email);
 
-    if (userError || !dados_user) {
-      return c.json({ error: "Usuário não encontrado." }, 404);
-    }
+    const { data: user } = await supabase
+      .from("userapp")
+      .select("*")
+      .eq("user_email", user_email)
+      .single();
 
     const { data, error } = await supabase
       .from("qrcode_requests")
