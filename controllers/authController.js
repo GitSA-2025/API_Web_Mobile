@@ -7,6 +7,8 @@ import { send2FACode } from "../services/mailService.js";
 import { generateQRCode } from "../utils/generateQRCode.js";
 import { encrypt, decrypt } from "../lib/crypto.js";
 import { getSupabase } from "../db/db.js";
+import { generateQRCodeAsFile } from "../utils/qrcode.js";
+
 
 
 export async function cadastrar(c) {
@@ -225,6 +227,9 @@ export async function gerarQRCodeController(c) {
 
       const qrCode = await generateQRCode(payload);
 
+      const qrCodeFile = await generateQRCodeAsFile(payload);
+
+
       // Remove solicitação usada
       const { error: delError } = await supabase
         .from("qrcode_requests")
@@ -233,7 +238,10 @@ export async function gerarQRCodeController(c) {
 
       if (delError) throw delError;
 
-      return c.json({ qrCode, status: "aprovado" });
+       return c.json({
+        qrCode: qrCodeFile.dataUrl,
+        status: "aprovado"
+      });
     }
 
     // --- STATUS PENDENTE ---
