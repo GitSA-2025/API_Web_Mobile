@@ -14,7 +14,7 @@ export async function cadastrar(c) {
   const supabase = getSupabase(c.env);
 
   try {
-    const { nome, cpf, email, telefone, senha, tipo } =  await c.req.json();
+    const { nome, cpf, email, telefone, senha, tipo } = await c.req.json();
     const senhaHash = await bcrypt.hash(senha, 10);
     const codigo2FA = generate2FACode();
     const cpfHash = await encrypt(cpf);
@@ -41,7 +41,7 @@ export async function cadastrar(c) {
     return c.json({
       message: "Usuário cadastrado! Verifique o código enviado por e-mail.",
       user: data,
-    },201);
+    }, 201);
   } catch (err) {
     console.error("Erro no cadastro:", err);
     return c.json({ error: "Erro ao cadastrar usuário." }, 500);
@@ -358,9 +358,13 @@ export async function gerarQrCodeComLink(c) {
     };
 
     // Gera o QRCode
-    const qrCode = await generateQRCode(payload);
+    const qrCodeSvg = generateQRCode(payload);
 
-    return c.json({ qrCode });
+    return c.json({
+      qrCode: `data:image/svg+xml;base64,${btoa(qrCodeSvg)}`,
+      status: "aprovado"
+    });
+    
   } catch (err) {
     console.error("Erro ao gerar QR Code:", err);
     return c.json({ error: "Erro ao gerar QRCode." }, 500);

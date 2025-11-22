@@ -1,13 +1,16 @@
-import QRCode from "qrcode";
-import { v4 as uuidv4 } from "uuid";
+import QRCode from "qrcode-svg";
 
-export async function generateQRCode(data) {
+export function generateQRCode(data) {
   const json = JSON.stringify(data);
-  return await QRCode.toDataURL(json, {
-    type: "image/png",
-    width: 300,
-    margin: 1,
+
+  const qr = new QRCode({
+    content: json,
+    padding: 2,
+    width: 256,
+    height: 256
   });
+
+  return qr.svg();
 }
 
 export async function generateQRCodeAsFile(data, filename = null) {
