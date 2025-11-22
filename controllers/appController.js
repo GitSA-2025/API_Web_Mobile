@@ -607,7 +607,7 @@ async function deletarRegistroEntrega(c) {
 export async function getUserByEmail(user_email) {
 
   const supabase = getSupabase(c.env);
-  
+
   try {
     const { data: user, error } = await supabase
       .from("userapp")
@@ -775,15 +775,23 @@ export async function geradorDeGraficoIA(c) {
 
 
 export async function aprovacaoQRCode(c) {
-
   const supabase = getSupabase(c.env);
 
   try {
     const { user_email, decisao } = await c.req.json();
     const id_request = c.req.param("id_request");
 
-    const dados_user = await getUserByEmail(user_email);
-    if (!dados_user) {
+    if (!id_request) {
+      return c.json({ error: "ID da solicitação não informado." }, 400);
+    }
+
+    const { data: dados_user, error: userError } = await supabase
+      .from("users")
+      .select("id_user")
+      .eq("email", user_email)
+      .single();
+
+    if (userError || !dados_user) {
       return c.json({ error: "Usuário não encontrado." }, 404);
     }
 
@@ -799,15 +807,22 @@ export async function aprovacaoQRCode(c) {
 
     if (error) throw error;
 
-    return c.json({
-      message: "Status alterado com sucesso!",
-      solicitacao: data,
-    }, 200);
+    return c.json(
+      {
+        message: "Status alterado com sucesso!",
+        solicitacao: data,
+      },
+      200
+    );
   } catch (err) {
     console.error("Erro ao alterar o status:", err);
-    return c.json({ error: "Erro ao alterar o status da solicitação." }, 500);
+    return c.json(
+      { error: "Erro ao alterar o status da solicitação." },
+      500
+    );
   }
 }
+
 
 export async function verSolicitacoes(c) {
 
