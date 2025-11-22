@@ -2,12 +2,11 @@ require('dotenv').config();
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { generate2FACode } from "../utils/generate2FACode.js";
+import { generate2FACode, generateQRCodeAsFile } from "../utils/generate2FACode.js";
 import { send2FACode } from "../services/mailService.js";
 import { generateQRCode } from "../utils/generateQRCode.js";
 import { encrypt, decrypt } from "../lib/crypto.js";
 import { getSupabase } from "../db/db.js";
-import { generateQRCodeAsFile } from "../utils/qrcode.js";
 
 
 
