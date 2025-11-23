@@ -25,7 +25,7 @@ router.post("/gerar-qrcode", authMiddleware, async (c) => await gerarQRCodeContr
 
 router.post("/gerar-qrcode-link", authMiddleware, async (c) =>  await gerarQrCodeComLink(c));
 
-router.put("/editar-perfil", authMiddleware, async (c) => await editarPerfil(c));
+router.post("/editar-perfil", authMiddleware, async (c) => await editarPerfil(c));
 router.put("/trocar-senha", authMiddleware, async (c) => await trocarSenha(c));
 router.post("/enviar-qrcode-whatsapp", authMiddleware, async (c) => await enviarQrCodeWhatsapp(c));
 
