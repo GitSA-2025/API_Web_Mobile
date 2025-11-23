@@ -862,7 +862,8 @@ export async function verSolicitacoes(c) {
           name: user?.name?.trim() || "Sem nome",
           user_email: user?.user_email || "Sem email",
           type_user: user?.type_user || "Desconhecido",
-          cpf: cpfVisivel
+          cpf: cpfVisivel,
+          plate: user?.plate || "",
         };
       })
     );
