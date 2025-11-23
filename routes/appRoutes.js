@@ -87,6 +87,6 @@ router.post("/app/aprovQrCode/:id_request", authMiddleware, async (c) => {
 router.get("/app/verSolic", authMiddleware, async (c) => await verSolicitacoes(c));
 
 router.post("/app/editarPerfil", authMiddleware, async (c) => await editarPerfil(c));
-router.post("/conta", authMiddleware, async (c) => await verConta(c));
+router.post("/app/conta", authMiddleware, async (c) => await verConta(c));
 
 export default router;
