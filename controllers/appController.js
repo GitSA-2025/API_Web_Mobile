@@ -203,7 +203,7 @@ async function criarRegistroEntrada(c) {
 
     const verifPlaca = placa && placa.trim() !== '' ? placa.trim() : 'Não se aplica.';
 
-    const cpfRegex = /^\d{11}$/;
+    const cpfRegex = /^\d{14}$/;
     if (!cpfRegex.test(cpf)) {
       return c.json({ error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.' }, 400);
     }
@@ -363,7 +363,7 @@ async function editarRegistroEntrada(c) {
   const { nome, tipo, cpf, placa } = await c.req.json();
   const idRegister = c.req.param("idregister");
   try {
-    const cpfRegex = /^\d{11}$/;
+    const cpfRegex = /^\d{14}$/;
     if (!cpfRegex.test(cpf)) {
       return c.json({ error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.' }, 400);
     }
