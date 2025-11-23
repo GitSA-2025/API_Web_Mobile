@@ -16,6 +16,8 @@ export async function authMiddleware(c, next) {
     const decoded = jwt.verify(token, c.env.JWT_SECRET);
 
     c.set("userId", decoded.id);
+    c.set("userEmail", decoded.email);
+
 
     await next();
   } catch (error) {

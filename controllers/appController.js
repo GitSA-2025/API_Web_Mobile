@@ -97,7 +97,14 @@ async function loginAPP(c) {
   if (!user || !(await bcrypt.compare(senha, user.user_password))) return c.json({ error: "Credenciais inválidas." }, 401);
   if (!user.verify2fa) return c.json({ error: "2FA não verificado." }, 403);
 
-  const token = jwt.sign({ id: user.id_user }, process.env.JWT_SECRET, { expiresIn: '8h' });
+  const token = jwt.sign(
+    {
+      id: user.id_user,
+      email: user.user_email
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '8h' }
+  );
   return c.json({ token });
 }
 
@@ -108,14 +115,14 @@ async function editarPerfil(c) {
 
   try {
     const { data, error } = await supabase
-    .from("userapp")
-    .update({
-      name: nome,
-      phone: telefone
-    })
-    .eq("user_email", user_email)
-    .select()
-    .single();
+      .from("userapp")
+      .update({
+        name: nome,
+        phone: telefone
+      })
+      .eq("user_email", user_email)
+      .select()
+      .single();
 
     if (error) throw error;
 
@@ -133,29 +140,29 @@ async function editarPerfil(c) {
 
 async function verConta(c) {
   const supabase = getSupabase(c.env);
-  
-    try {
-      const { user_email } = await c.req.json();
-  
-      const { data: user } = await supabase
-        .from("userapp")
-        .select("*")
-        .eq("user_email", user_email)
-        .single();
-  
-      if (!user) return c.json({ error: "Usuário não encontrado." }, 404);
 
-  
-      return c.json({
-        id_user: user.id_user,
-        name: user.name,
-        user_email: user.user_email,
-        phone: user.phone,
-      });
-    } catch (err) {
-      console.error("Erro ao buscar conta:", err);
-      return c.json({ error: "Erro ao buscar conta." }, 500);
-    }
+  try {
+    const { user_email } = await c.req.json();
+
+    const { data: user } = await supabase
+      .from("userapp")
+      .select("*")
+      .eq("user_email", user_email)
+      .single();
+
+    if (!user) return c.json({ error: "Usuário não encontrado." }, 404);
+
+
+    return c.json({
+      id_user: user.id_user,
+      name: user.name,
+      user_email: user.user_email,
+      phone: user.phone,
+    });
+  } catch (err) {
+    console.error("Erro ao buscar conta:", err);
+    return c.json({ error: "Erro ao buscar conta." }, 500);
+  }
 }
 
 async function criarRegistroEntrega(c) {
@@ -346,7 +353,15 @@ async function exbirRegistrosEntrada(c) {
 
   try {
 
-    const { user_email } = await c.req.json();
+    //const { user_email } = await c.req.json();
+
+     const user_email = c.get("userEmail");
+
+    console.log("Email do token:", user_email);
+
+    if (!user_email) {
+      return c.json({ error: "Email não encontrado no token." }, 400);
+    }
 
     console.log(user_email);
 
