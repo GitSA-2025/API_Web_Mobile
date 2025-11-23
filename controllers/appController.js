@@ -321,7 +321,13 @@ async function exbirRegistrosEntrega(c) {
 
   try {
 
-    const { user_email } = await c.req.json();
+    const user_email = c.get("userEmail");
+
+    console.log("Email do token:", user_email);
+
+    if (!user_email) {
+      return c.json({ error: "Email não encontrado no token." }, 400);
+    }
 
     const { data: user } = await supabase
       .from("userapp")
@@ -353,17 +359,13 @@ async function exbirRegistrosEntrada(c) {
 
   try {
 
-    //const { user_email } = await c.req.json();
-
-     const user_email = c.get("userEmail");
+    const user_email = c.get("userEmail");
 
     console.log("Email do token:", user_email);
 
     if (!user_email) {
       return c.json({ error: "Email não encontrado no token." }, 400);
     }
-
-    console.log(user_email);
 
     const { data: user } = await supabase
       .from("userapp")
