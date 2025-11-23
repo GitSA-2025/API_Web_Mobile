@@ -101,20 +101,61 @@ async function loginAPP(c) {
   return c.json({ token });
 }
 
-//precisa arrumar
-async function editarContaAPP(req, res) {
-  const { nome, email, telefone } = req.body;
+async function editarPerfil(c) {
+  const supabase = getSupabase(c.env);
+
+  const { nome, telefone, user_email } = await c.req.json();
+
   try {
-    const user = await UserAPP.findByPk(req.userId);
-    if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
-    user.nome = nome;
-    user.telefone = telefone.replace(/\D/g, '');
-    user.email = email;
-    await user.save();
-    res.json({ message: "Perfil atualizado com sucesso." });
-  } catch (err) {
-    res.status(500).json({ error: "Erro ao atualizar perfil." });
+    const { data, error } = await supabase
+    .from("userapp")
+    .update({
+      name: nome,
+      phone: telefone
+    })
+    .eq("user_email", user_email)
+    .select()
+    .single();
+
+    if (error) throw error;
+
+    return c.json({
+      message: 'Registro atualizado!',
+      usuario: data,
+    }, 201);
   }
+
+  catch (err) {
+    console.log(err);
+    return c.json({ error: "Erro ao atualizar o conta." }, 500);
+  }
+}
+
+async function verConta(c) {
+  const supabase = getSupabase(c.env);
+  
+    try {
+      const { user_email } = await c.req.json();
+  
+      const { data: user } = await supabase
+        .from("userapp")
+        .select("*")
+        .eq("user_email", user_email)
+        .single();
+  
+      if (!user) return c.json({ error: "Usuário não encontrado." }, 404);
+
+  
+      return c.json({
+        id_user: user.id_user,
+        name: user.name,
+        user_email: user.user_email,
+        phone: user.phone,
+      });
+    } catch (err) {
+      console.error("Erro ao buscar conta:", err);
+      return c.json({ error: "Erro ao buscar conta." }, 500);
+    }
 }
 
 async function criarRegistroEntrega(c) {
@@ -202,11 +243,6 @@ async function criarRegistroEntrada(c) {
     }
 
     const verifPlaca = placa && placa.trim() !== '' ? placa.trim() : 'Não se aplica.';
-
-    const cpfRegex = /^\d{14}$/;
-    if (!cpfRegex.test(cpf)) {
-      return c.json({ error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.' }, 400);
-    }
 
     const cpfHast = await encrypt(cpf);
 
@@ -340,22 +376,6 @@ async function exbirRegistrosEntrada(c) {
   }
 }
 
-//precisa arrumar
-async function verContaAPP(req, res) {
-  try {
-    const user = await UserAPP.findByPk(req.userId);
-
-    if (!user) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
-    }
-
-    res.json(user);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-}
-
 async function editarRegistroEntrada(c) {
 
   const supabase = getSupabase(c.env);
@@ -363,10 +383,6 @@ async function editarRegistroEntrada(c) {
   const { nome, tipo, cpf, placa } = await c.req.json();
   const idRegister = c.req.param("idregister");
   try {
-    const cpfRegex = /^\d{14}$/;
-    if (!cpfRegex.test(cpf)) {
-      return c.json({ error: 'Formato do CPF inválido. Use apenas 11 dígitos numéricos.' }, 400);
-    }
 
     const cpfHast = await encrypt(cpf);
 
@@ -922,14 +938,14 @@ export {
   cadastrarAPP,
   loginAPP,
   verificar2FAAPP,
-  editarContaAPP,
+  editarPerfil,
   criarRegistroEntrega,
   criarRegistroEntrada,
   exbirRegistrosEntrega,
   exbirRegistrosEntrada,
-  verContaAPP,
   editarRegistroEntrada,
   editarRegistroEntrega,
   deletarRegistroEntrega,
+  verConta,
 };
 

@@ -151,6 +151,40 @@ export async function verConta(c) {
   }
 }
 
+export async function editarPerfil(c) {
+  const supabase = getSupabase(c.env);
+
+  const { nome, cpf,telefone, placa, user_email } = await c.req.json();
+
+  const cpfHash = await encrypt(cpf);
+
+  try {
+    const { data, error } = await supabase
+    .from("userweb")
+    .update({
+      name: nome,
+      phone: telefone,
+      plate: placa,
+      cpf: cpfHash
+    })
+    .eq("user_email", user_email)
+    .select()
+    .single();
+
+    if (error) throw error;
+
+    return c.json({
+      message: 'Registro atualizado!',
+      usuario: data,
+    }, 201);
+  }
+
+  catch (err) {
+    console.log(err);
+    return c.json({ error: "Erro ao atualizar o conta." }, 500);
+  }
+}
+
 
 export async function gerarQRCodeController(c) {
 

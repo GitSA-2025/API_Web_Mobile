@@ -6,9 +6,7 @@ import {
   login,
   gerarQRCodeController,
   gerarQrCodeComLink,
-  //editarPerfil,
-  //trocarSenha,
-  //enviarQrCodeWhatsapp,
+  editarPerfil,
   verConta,
   solicitarQRCode,
 } from "../controllers/authController.js";
