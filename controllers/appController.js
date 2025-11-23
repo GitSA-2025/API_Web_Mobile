@@ -929,10 +929,8 @@ async function fecharRegistrosEntradas(supabase) {
     for (const reg of registros) {
       if (!reg.hr_entry || !reg.date_access) continue;
 
-      // monta a data/hora da entrada
       const entrada = new Date(`${reg.date_access}T${reg.hr_entry}`);
 
-      // diferença em milissegundos
       const diffMs = agora - entrada;
       const diffHoras = diffMs / (1000 * 60 * 60);
 
