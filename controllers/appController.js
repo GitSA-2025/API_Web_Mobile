@@ -842,9 +842,18 @@ export async function verSolicitacoes(c) {
       solicitacoes.map(async (solic) => {
         const { data: user } = await supabase
           .from("userweb")
-          .select("name, user_email, type_user")
+          .select("name, user_email, type_user, cpf")
           .eq("id_user", solic.id_requester)
           .single();
+
+        let cpfVisivel;
+        try {
+          cpfVisivel = await decrypt(user.cpf);
+        }
+        catch (e) {
+          console.warn("Erro ao descriptografar CPF:", e.message);
+          cpfVisivel = "Indisponível";
+        }
 
         return {
           id: solic.id,
@@ -853,6 +862,7 @@ export async function verSolicitacoes(c) {
           name: user?.name?.trim() || "Sem nome",
           user_email: user?.user_email || "Sem email",
           type_user: user?.type_user || "Desconhecido",
+          cpf: cpfVisivel
         };
       })
     );
