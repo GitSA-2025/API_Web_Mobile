@@ -186,13 +186,17 @@ export async function gerarQRCodeController(c) {
     }
 
     // Tenta descriptografar CPF
-    if (dados_user.cpf) {
-      try {
-        dados_user.cpf = decrypt(dados_user.cpf);
-      } catch (err) {
-        console.warn("Não foi possível descriptografar o CPF:", err);
-      }
+    
+    let cpfVisivel;
+    try{
+      cpfVisivel = await decrypt(dados_user.cpf);
     }
+    catch(e){
+      console.warn("Erro ao descriptografar CPF:", e.message);
+      cpfVisivel = "Indisponível";
+    }
+
+    console.log(cpfVisivel);
 
     // Busca solicitação de QRCode
     const { data: solicitacao, error: reqError } = await supabase
@@ -228,7 +232,7 @@ export async function gerarQRCodeController(c) {
         userData: {
           id_user: dados_user.id_user,
           name: dados_user.name,
-          cpf: dados_user.cpf,
+          cpf: cpfVisivel,
           user_email: dados_user.user_email,
           phone: dados_user.phone,
           type_user: dados_user.type_user,
