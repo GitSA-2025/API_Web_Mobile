@@ -1,23 +1,30 @@
 import Brevo from "@getbrevo/brevo";
 
+// Obtendo a API Key do Brevo (via variáveis de ambiente ou globalThis)
 const BREVO_API_KEY =
   process?.env?.BREVO_API_KEY || globalThis?.env?.BREVO_API_KEY;
+
+// Obtendo o e-mail do remetente (também via ambiente)
 const EMAIL_USER =
   process?.env?.EMAIL_USER || globalThis?.env?.EMAIL_USER;
 
+// Se a API Key não estiver definida, exibe um aviso
 if (!BREVO_API_KEY) {
   console.warn("⚠️ BREVO_API_KEY não encontrada! Verifique o wrangler.toml ou o ambiente.");
 }
 
+// Criando o cliente da API de e-mails transacionais do Brevo
 const client = new Brevo.TransactionalEmailsApi();
 client.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, BREVO_API_KEY);
 
+// Função para enviar código 2FA por e-mail
 export async function send2FACode(email, code) {
   try {
+    // Estrutura do e-mail a ser enviado
     const sendSmtpEmail = {
-      sender: { email: EMAIL_USER },
-      to: [{ email }],
-      subject: `${code} - Seu código de verificação do Crachá Online`,
+      sender: { email: EMAIL_USER },          // Remetente
+      to: [{ email }],                        // Destinatário
+      subject: `${code} - Seu código de verificação do Crachá Online`, // Assunto do e-mail
       htmlContent: `
         <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 24px; border-radius: 10px; max-width: 600px; margin: auto; color: #333;">
           <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);">
@@ -30,7 +37,7 @@ export async function send2FACode(email, code) {
               Use o código abaixo para confirmar sua identidade:
             </p>
             <div style="font-size: 24px; font-weight: bold; background-color: #e8f5e9; color: #2e7d32; padding: 12px 20px; display: inline-block; border-radius: 6px; letter-spacing: 3px; margin-bottom: 24px;">
-              ${code}
+              ${code}  <!-- Código de verificação dinâmico -->
             </div>
             <p style="font-size: 14px; color: #666;">
               Se você não solicitou essa verificação, pode ignorar esta mensagem com segurança.
@@ -41,12 +48,16 @@ export async function send2FACode(email, code) {
             </p>
           </div>
         </div>
-      `,
+      `, // Conteúdo HTML do e-mail
     };
 
+    // Envia o e-mail usando a API do Brevo
     await client.sendTransacEmail(sendSmtpEmail);
+
+    // Log de sucesso
     console.log(`✅ E-mail enviado para ${email}`);
   } catch (err) {
+    // Log de erro e relançamento da exceção
     console.error("❌ Erro ao enviar e-mail:", err);
     throw err;
   }
