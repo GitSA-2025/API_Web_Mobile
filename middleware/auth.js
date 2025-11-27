@@ -3,80 +3,39 @@ import jwt from "jsonwebtoken";
 // Middleware para proteger rotas usando JWT
 export async function authMiddleware(c, next) {
   try {
-    // 1️⃣ Pega o header "Authorization" da requisição
+    // Pega o header "Authorization" da requisição
     const authHeader = c.req.header("authorization");
 
-    // 2️⃣ Se não houver header, retorna erro 401 (não autorizado)
+    // Se não houver header, retorna erro 401 (não autorizado)
     if (!authHeader) {
       return c.json({ error: "Token não fornecido." }, 401);
     }
 
-    // 3️⃣ Extrai o token (espera formato "Bearer <token>")
+    // Extrai o token (espera formato "Bearer <token>")
     const token = authHeader.split(" ")[1];
     if (!token) {
       return c.json({ error: "Token inválido." }, 401);
     }
 
-    // 4️⃣ Verifica o token usando a chave secreta do ambiente
+    // Verifica o token usando a chave secreta do ambiente
     const decoded = jwt.verify(token, c.env.JWT_SECRET);
 
-    // 5️⃣ Adiciona informações do usuário no contexto da requisição
+    //  Adiciona informações do usuário no contexto da requisição
     //    para que as rotas seguintes possam acessar
     c.set("userId", decoded.id);
     c.set("userEmail", decoded.email);
 
-    // 6️⃣ Chama a próxima função/middleware da rota
+    // Chama a próxima função/middleware da rota
     await next();
   } catch (error) {
     console.error("Erro na autenticação JWT:", error);
 
-    // 7️⃣ Tratamento de token expirado
+    // Tratamento de token expirado
     if (error.name === "TokenExpiredError") {
       return c.json({ error: "Token expirado." }, 401);
     }
 
-    // 8️⃣ Qualquer outro erro retorna 403 (proibido)
-    return c.json({ error: "Token inválido ou expirado." }, 403);
-  }
-}
-import jwt from "jsonwebtoken";
-
-// Middleware para proteger rotas usando JWT
-export async function authMiddleware(c, next) {
-  try {
-    // 1️⃣ Pega o header "Authorization" da requisição
-    const authHeader = c.req.header("authorization");
-
-    // 2️⃣ Se não houver header, retorna erro 401 (não autorizado)
-    if (!authHeader) {
-      return c.json({ error: "Token não fornecido." }, 401);
-    }
-
-    // 3️⃣ Extrai o token (espera formato "Bearer <token>")
-    const token = authHeader.split(" ")[1];
-    if (!token) {
-      return c.json({ error: "Token inválido." }, 401);
-    }
-
-    // 4️⃣ Verifica o token usando a chave secreta do ambiente
-    const decoded = jwt.verify(token, c.env.JWT_SECRET);
-
-    // 5️⃣ Adiciona informações do usuário no contexto da requisição
-    //    para que as rotas seguintes possam acessar
-    c.set("userId", decoded.id);
-    c.set("userEmail", decoded.email);
-
-    // 6️⃣ Chama a próxima função/middleware da rota
-    await next();
-  } catch (error) {
-    console.error("Erro na autenticação JWT:", error);
-
-    // 7️⃣ Tratamento de token expirado
-    if (error.name === "TokenExpiredError") {
-      return c.json({ error: "Token expirado." }, 401);
-    }
-
-    // 8️⃣ Qualquer outro erro retorna 403 (proibido)
+    // Qualquer outro erro retorna 403 (proibido)
     return c.json({ error: "Token inválido ou expirado." }, 403);
   }
 }
