@@ -733,7 +733,22 @@ export async function filtrarEntregas(c) {
     const { data, error } = await query;
     if (error) throw error;
 
-    return c.json(data);
+    function formatarDataBR(data) {
+      if (!data) return null;
+      const apenasData = data.split("T")[0];
+
+      const [ano, mes, dia] = apenasData.split("-");
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    const entradasFormatadas = data.map(registro => {
+      return {
+        ...registro,
+        date_fixed: formatarDataBR(registro.date)
+      };
+    });
+
+    return c.json(entradasFormatadas);
 
   } catch (err) {
     console.error("Erro ao listar entregas:", err);
@@ -790,7 +805,22 @@ export async function filtrarEntradas(c) {
     const { data, error } = await query;
     if (error) throw error;
 
-    return c.json(data);
+    function formatarDataBR(data) {
+      if (!data) return null;
+      const apenasData = data.split("T")[0];
+
+      const [ano, mes, dia] = apenasData.split("-");
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    const entradasFormatadas = data.map(registro => {
+      return {
+        ...registro,
+        date_fixed: formatarDataBR(registro.date)
+      };
+    });
+
+    return c.json(entradasFormatadas);
 
   } catch (err) {
     console.error("Erro ao filtrar entradas:", err);
