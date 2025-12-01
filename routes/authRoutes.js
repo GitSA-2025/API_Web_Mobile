@@ -9,6 +9,8 @@ import {
   editarPerfil,
   verConta,
   solicitarQRCode,
+  salvarQRCode,
+  validarQRCode
 } from "../controllers/authController.js";
 
 // Criando o roteador Hono
@@ -52,6 +54,12 @@ router.post("/solicitar-qrcode/:user_email", authMiddleware, async (c) => {
   const user_email = c.req.param("user_email");
   return await solicitarQRCode(c, user_email);
 });
+
+// Rota para salvar QR Code
+router.post("/salvar-qrcode", authMiddleware, async (c) => await salvarQRCode(c));
+
+
+router.post("/validar-qrcode", authMiddleware, async (c) => await validarQRCode(c));
 
 // ==================== ROTA DE VALIDAÇÃO DE QR CODE (Comentada) ==================== //
 // Este bloco serve como referência para futura implementação de validação de QR Code
