@@ -453,58 +453,50 @@ export async function salvarQRCode(c) {
 
 export async function validarQRCode(c) {
   const supabase = getSupabase(c.env);
-
   const { qrId } = await c.req.json();
 
-  try {
-    const { data: qrCode, error } = await supabase
-      .from("qrcodes")
-      .select("*")
-      .eq("qr_id", qrId)
-      .single();
+  const { data, error } = await supabase
+    .from("qrcodes")
+    .select("*")
+    .eq("qr_id", qrId)
+    .single();
 
-    if (error || !qrCode) {
-      return c.json({ error: "QR Code inválido" }, 404);
-    }
-
-    // 1. Verificar se é de uso único e já foi usado
-    if (qrCode.single_use && qrCode.used) {
-      return c.json({ error: "QR Code já foi utilizado" }, 400);
-    }
-
-    // 2. Verificar se venceu
-    if (qrCode.expires_at) {
-      const agora = new Date();
-      const expiracao = new Date(qrCode.expires_at);
-
-      if (agora > expiracao) {
-        return c.json({ error: "QR Code expirado" }, 400);
-      }
-    }
-
-    // 3. Se for visitante (uso único), marca como usado
-    if (qrCode.single_use) {
-      const { error: updateError } = await supabase
-        .from("qrcodes")
-        .update({ used: true })
-        .eq("qr_id", qrId);
-
-      if (updateError) throw updateError;
-    }
-
-    // 4. Aqui você pode integrar já com o registro de entrada
-    // ex: salvar na tabela de entrada accessregister
-
-    return c.json({
-      message: "QR Code válido - acesso permitido",
-      email: qrCode.user_email,
-      qrCode
-    }, 200);
-
-  } catch (err) {
-    console.log(err);
-    return c.json({ error: "Erro ao validar QR Code" }, 500);
+  if (error || !data) {
+    return c.json({ error: "QR Code inválido" }, 404);
   }
+
+  // Se for de visitante
+  if (data.single_use) {
+    // Já foi usado?
+    if (data.used) {
+      return c.json({ error: "QR Code já utilizado" }, 400);
+    }
+
+    // Já venceu?
+    if (data.expires_at && new Date() > new Date(data.expires_at)) {
+      return c.json({ error: "QR Code expirado" }, 400);
+    }
+  }
+
+  // Marca como usado se for single use
+  if (data.single_use) {
+    await supabase
+      .from("qrcodes")
+      .update({ used: true })
+      .eq("qr_id", qrId);
+  }
+
+  // Registra entrada
+  await supabase.from("accessregister").insert({
+    user_email: data.email,
+    hr_entry: new Date().toISOString()
+  });
+
+  return c.json({
+    message: "Acesso liberado",
+    email: data.email
+  });
 }
+
 
 
