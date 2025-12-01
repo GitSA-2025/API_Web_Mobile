@@ -664,10 +664,7 @@ async function deletarRegistroEntrega(c) {
   }
 }
 
-export async function getUserByEmail(user_email) {
-
-  const supabase = getSupabase(c.env);
-
+export async function getUserByEmail(supabase, user_email) {
   try {
     const { data: user, error } = await supabase
       .from("userapp")
@@ -676,7 +673,9 @@ export async function getUserByEmail(user_email) {
       .single();
 
     if (error) throw error;
+
     return user;
+
   } catch (err) {
     console.error("Erro ao buscar usuário por e-mail:", err);
     return null;
@@ -691,7 +690,7 @@ export async function filtrarEntregas(c) {
   try {
     const { user_email, filtro } = await c.req.json();
 
-    const dados_user = await getUserByEmail(user_email);
+    const dados_user = await getUserByEmail(supabase, user_email);
     if (!dados_user) {
       return c.json({ error: "Usuário não encontrado." }, 404);
     }
@@ -750,7 +749,7 @@ export async function filtrarEntradas(c) {
   try {
     const { user_email, filtro } = await c.req.json();
 
-    const dados_user = await getUserByEmail(user_email);
+    const dados_user = await getUserByEmail(supabase, user_email);
     if (!dados_user) {
       return c.json({ error: "Usuário não encontrado." }, 404);
     }
