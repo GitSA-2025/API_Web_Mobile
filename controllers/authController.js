@@ -418,3 +418,93 @@ export async function solicitarQRCode(c) {
   }
 }
 
+export async function salvarQRCode(c) {
+  const supabase = getSupabase(c.env);
+
+  const { qrId, email, expiresAt, singleUse } = await c.req.json();
+
+  try {
+    const { data, error } = await supabase
+      .from("qrcodes")
+      .insert([
+        {
+          qr_id: qrId,
+          user_email: email,
+          expires_at: expiresAt,
+          used: false,
+          single_use: singleUse
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return c.json({
+      message: "QR Code salvo com sucesso!",
+      qrcode: data
+    }, 201);
+
+  } catch (err) {
+    console.log(err);
+    return c.json({ error: "Erro ao salvar QR Code" }, 500);
+  }
+}
+
+export async function validarQRCode(c) {
+  const supabase = getSupabase(c.env);
+
+  const { qrId } = await c.req.json();
+
+  try {
+    const { data: qrCode, error } = await supabase
+      .from("qrcodes")
+      .select("*")
+      .eq("qr_id", qrId)
+      .single();
+
+    if (error || !qrCode) {
+      return c.json({ error: "QR Code inválido" }, 404);
+    }
+
+    // 1. Verificar se é de uso único e já foi usado
+    if (qrCode.single_use && qrCode.used) {
+      return c.json({ error: "QR Code já foi utilizado" }, 400);
+    }
+
+    // 2. Verificar se venceu
+    if (qrCode.expires_at) {
+      const agora = new Date();
+      const expiracao = new Date(qrCode.expires_at);
+
+      if (agora > expiracao) {
+        return c.json({ error: "QR Code expirado" }, 400);
+      }
+    }
+
+    // 3. Se for visitante (uso único), marca como usado
+    if (qrCode.single_use) {
+      const { error: updateError } = await supabase
+        .from("qrcodes")
+        .update({ used: true })
+        .eq("qr_id", qrId);
+
+      if (updateError) throw updateError;
+    }
+
+    // 4. Aqui você pode integrar já com o registro de entrada
+    // ex: salvar na tabela de entrada accessregister
+
+    return c.json({
+      message: "QR Code válido - acesso permitido",
+      email: qrCode.user_email,
+      qrCode
+    }, 200);
+
+  } catch (err) {
+    console.log(err);
+    return c.json({ error: "Erro ao validar QR Code" }, 500);
+  }
+}
+
+
