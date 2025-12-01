@@ -486,12 +486,6 @@ export async function validarQRCode(c) {
       .eq("qr_id", qrId);
   }
 
-  // Registra entrada
-  await supabase.from("accessregister").insert({
-    user_email: data.email,
-    hr_entry: new Date().toISOString()
-  });
-
   return c.json({
     message: "Acesso liberado",
     email: data.email

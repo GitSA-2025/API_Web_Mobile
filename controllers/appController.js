@@ -323,8 +323,6 @@ async function exbirRegistrosEntrega(c) {
 
     const user_email = c.get("userEmail");
 
-    console.log("Email do token:", user_email);
-
     if (!user_email) {
       return c.json({ error: "Email não encontrado no token." }, 400);
     }
@@ -340,11 +338,18 @@ async function exbirRegistrosEntrega(c) {
       .select("*")
       .eq("iduser", user.id_user)
       .order("date", { ascending: false })
-      .order("hr_entry", { ascending: false });
+      .order("hr_entry", { ascending: true });
 
     if (entregaError) throw entregaError;
 
-    return c.json(entregas);
+    const entregasFormatadas = entregas.map(registro => {
+      return {
+        ...registro,
+        date_fixed: formatarDataBR(registro.date)
+      };
+    });
+
+    return c.json(entregasFormatadas);
 
   }
   catch (err) {
@@ -353,6 +358,7 @@ async function exbirRegistrosEntrega(c) {
   }
 }
 
+
 async function exbirRegistrosEntrada(c) {
 
   const supabase = getSupabase(c.env);
@@ -360,8 +366,6 @@ async function exbirRegistrosEntrada(c) {
   try {
 
     const user_email = c.get("userEmail");
-
-    console.log("Email do token:", user_email);
 
     if (!user_email) {
       return c.json({ error: "Email não encontrado no token." }, 400);
@@ -384,7 +388,14 @@ async function exbirRegistrosEntrada(c) {
 
     if (entradaError) throw entradaError;
 
-    return c.json(entradas);
+    const entradasFormatadas = entradas.map(registro => {
+      return {
+        ...registro,
+        date_fixed: formatarDataBR(registro.date)
+      };
+    });
+
+    return c.json(entradasFormatadas);
 
   }
   catch (err) {
@@ -669,46 +680,52 @@ export async function filtrarEntregas(c) {
       return c.json({ error: "Usuário não encontrado." }, 404);
     }
 
-    let orderCol = "date";
-    let orderDir = { ascending: false };
+    let query = supabase
+      .from("deliveryregister")
+      .select("*")
+      .eq("iduser", dados_user.id_user);
 
     switch (filtro) {
+
       case "data_crescente":
-        orderCol = "date";
-        orderDir = { ascending: true };
+        query = query.order("date", { ascending: true })
+          .order("hr_entry", { ascending: true });
         break;
+
       case "data_decrescente":
-        orderCol = "date";
-        orderDir = { ascending: false };
+        query = query.order("date", { ascending: false })
+          .order("hr_entry", { ascending: false });
         break;
+
       case "hora_crescente":
-        orderCol = "hr_entry";
-        orderDir = { ascending: true };
+        // Data mais recente primeiro, mas hora mais antiga no topo
+        query = query.order("date", { ascending: false })
+          .order("hr_entry", { ascending: true });
         break;
+
       case "hora_decrescente":
-        orderCol = "hr_entry";
-        orderDir = { ascending: false };
+        // Data mais recente primeiro, e horas mais recentes em cima
+        query = query.order("date", { ascending: false })
+          .order("hr_entry", { ascending: false });
         break;
+
       default:
-        orderCol = "date";
-        orderDir = { ascending: false };
+        query = query.order("date", { ascending: false })
+          .order("hr_entry", { ascending: false });
         break;
     }
 
-    const { data: result, error } = await supabase
-      .from("deliveryregister")
-      .select("*")
-      .eq("iduser", dados_user.id_user)
-      .order(orderCol, orderDir);
-
+    const { data, error } = await query;
     if (error) throw error;
 
-    return c.json(result);
+    return c.json(data);
+
   } catch (err) {
     console.error("Erro ao listar entregas:", err);
     return c.json({ error: "Erro ao listar entregas." }, 500);
   }
 }
+
 
 export async function filtrarEntradas(c) {
 
@@ -722,23 +739,36 @@ export async function filtrarEntradas(c) {
       return c.json({ error: "Usuário não encontrado." }, 404);
     }
 
-    let query = supabase.from("accessregister").select("*").eq("iduser", dados_user.id_user);
+    let query = supabase
+      .from("accessregister")
+      .select("*")
+      .eq("iduser", dados_user.id_user);
 
     switch (filtro) {
+
       case "data_crescente":
-        query = query.order("date", { ascending: true });
+        query = query.order("date", { ascending: true })
+          .order("hr_entry", { ascending: true });
         break;
+
       case "data_decrescente":
-        query = query.order("date", { ascending: false });
+        query = query.order("date", { ascending: false })
+          .order("hr_entry", { ascending: false });
         break;
+
       case "hora_crescente":
-        query = query.order("date", { ascending: false }).order("hr_entry", { ascending: true });
+        query = query.order("date", { ascending: false })
+          .order("hr_entry", { ascending: true });
         break;
+
       case "hora_decrescente":
-        query = query.order("date", { ascending: false }).order("hr_entry", { ascending: false });
+        query = query.order("date", { ascending: false })
+          .order("hr_entry", { ascending: false });
         break;
+
       default:
-        query = query.order("date", { ascending: false }).order("hr_entry", { ascending: false });
+        query = query.order("date", { ascending: false })
+          .order("hr_entry", { ascending: false });
         break;
     }
 
@@ -746,11 +776,13 @@ export async function filtrarEntradas(c) {
     if (error) throw error;
 
     return c.json(data);
+
   } catch (err) {
     console.error("Erro ao filtrar entradas:", err);
     return c.json({ error: "Erro ao listar entradas." }, 500);
   }
 }
+
 
 export async function geradorDeGraficoIA(c) {
 
