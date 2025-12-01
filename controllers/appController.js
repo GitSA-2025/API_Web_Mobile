@@ -342,6 +342,14 @@ async function exbirRegistrosEntrega(c) {
 
     if (entregaError) throw entregaError;
 
+    function formatarDataBR(data) {
+      if (!data) return null;
+      const apenasData = data.split("T")[0];
+
+      const [ano, mes, dia] = apenasData.split("-");
+      return `${dia}/${mes}/${ano}`;
+    }
+
     const entregasFormatadas = entregas.map(registro => {
       return {
         ...registro,
@@ -387,6 +395,14 @@ async function exbirRegistrosEntrada(c) {
       .order("hr_entry", { ascending: false });
 
     if (entradaError) throw entradaError;
+
+    function formatarDataBR(data) {
+      if (!data) return null;
+      const apenasData = data.split("T")[0];
+
+      const [ano, mes, dia] = apenasData.split("-");
+      return `${dia}/${mes}/${ano}`;
+    }
 
     const entradasFormatadas = entradas.map(registro => {
       return {
