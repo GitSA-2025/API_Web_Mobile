@@ -967,7 +967,7 @@ async function fecharRegistrosEntradas(supabase) {
     const { data: registros, error } = await supabase
       .from("accessregister")
       .select("*")
-      .is("hr_exit", "-");
+      .or("hr_exit.is.null,hr_exit.eq.-");
 
     if (error) {
       console.error("Erro ao buscar registros:", error);
@@ -999,7 +999,7 @@ async function fecharRegistrosEntradas(supabase) {
         if (updateError) {
           console.error("Erro ao atualizar registro", reg.idregister);
         } else {
-          console.log(`Saída automática registrada: ${reg.idregister}`);
+          console.log(`✅ Saída automática registrada: ${reg.idregister}`);
         }
       }
     }
@@ -1008,6 +1008,7 @@ async function fecharRegistrosEntradas(supabase) {
     console.error("Erro ao fechar registros:", err);
   }
 }
+
 
 
 
