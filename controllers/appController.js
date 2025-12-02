@@ -967,7 +967,7 @@ async function fecharRegistrosEntradas(supabase) {
     const { data: registros, error } = await supabase
       .from("accessregister")
       .select("*")
-      .is("hr_exit", null);
+      .is("hr_exit", "-");
 
     if (error) {
       console.error("Erro ao buscar registros:", error);
