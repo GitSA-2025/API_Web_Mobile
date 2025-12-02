@@ -281,9 +281,9 @@ export async function gerarQRCodeController(c) {
   if (solicitacao.status === "negado") {
     return c.json({
       status: "negado",
-      error:
+      message:
         "Sua solicitação foi negada. Por favor, faça uma nova solicitação.",
-    }, 403);
+    }, 200);
   }
 
 } catch (err) {
