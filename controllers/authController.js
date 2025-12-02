@@ -395,9 +395,13 @@ export async function solicitarQRCode(c) {
       }, 200);
     }
 
+    const agora = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+    );
+
     const { data: inserted, error } = await supabase
       .from("qrcode_requests")
-      .insert([{ id_requester: user.id_user, status: "pendente" }])
+      .insert([{ id_requester: user.id_user, status: "pendente",  created_at: agora}])
       .select()
       .single();
 
