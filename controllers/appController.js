@@ -959,7 +959,10 @@ export async function verSolicitacoes(c) {
 }
 
 async function fecharRegistrosEntradas(supabase) {
+  console.log("Função fecharRegistrosEntradas foi chamada");
+
   try {
+    // Data atual no fuso horário do Brasil
     const agora = new Date(
       new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
     );
@@ -967,19 +970,22 @@ async function fecharRegistrosEntradas(supabase) {
     const { data: registros, error } = await supabase
       .from("accessregister")
       .select("*")
-      .or("hr_exit.is.null,hr_exit.eq.-");
+      .or("hr_exit.is.null,hr_exit.eq.-"); 
 
     if (error) {
       console.error("Erro ao buscar registros:", error);
       return;
     }
 
-    for (const reg of registros) {
-      if (!reg.hr_entry || !reg.date_access) continue;
+    console.log("Registros em aberto:", registros.length);
 
-      const dataHoraEntrada = new Date(
-        `${reg.date_access}T${reg.hr_entry}`
-      );
+    for (const reg of registros) {
+
+      console.log("Analisando:", reg.idregister, reg.date, reg.hr_entry, reg.hr_exit);
+
+      if (!reg.hr_entry || !reg.date) continue;
+
+      const dataHoraEntrada = new Date(`${reg.date}T${reg.hr_entry}`);
 
       const diffMs = agora - dataHoraEntrada;
       const diffHoras = diffMs / (1000 * 60 * 60);
@@ -987,8 +993,6 @@ async function fecharRegistrosEntradas(supabase) {
       if (diffHoras >= 6) {
 
         const hrSaida = agora.toTimeString().slice(0, 8);
-
-        console.log("Verificando registro:", reg.idregister, reg.hr_entry);
 
         const { error: updateError } = await supabase
           .from("accessregister")
@@ -998,20 +1002,17 @@ async function fecharRegistrosEntradas(supabase) {
           .eq("idregister", reg.idregister);
 
         if (updateError) {
-          console.error("Erro ao atualizar registro", reg.idregister);
+          console.error("Erro ao atualizar:", reg.idregister, updateError);
         } else {
-          console.log(`✅ Saída automática registrada: ${reg.idregister}`);
+          console.log(`Saída automática registrada: ${reg.idregister}`);
         }
       }
     }
 
   } catch (err) {
-    console.error("Erro ao fechar registros:", err);
+    console.error("❌ Erro ao fechar registros:", err);
   }
 }
-
-
-
 
 export {
   cadastrarAPP,
