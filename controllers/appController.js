@@ -987,7 +987,8 @@ async function fecharRegistrosEntradas(supabase) {
       if (diffHoras >= 6) {
 
         const hrSaida = agora.toTimeString().slice(0, 8);
-        const dataSaida = agora.toISOString().split("T")[0];
+
+        console.log("Verificando registro:", reg.idregister, reg.hr_entry);
 
         const { error: updateError } = await supabase
           .from("accessregister")
