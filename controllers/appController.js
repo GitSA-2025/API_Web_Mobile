@@ -198,7 +198,7 @@ async function criarRegistroEntrega(c) {
         name: nome,
         phone: telefone,
         date: dateSQL,
-        hr_entry: hourSQL,   
+        hr_entry: hourSQL,
         plate_vehicle: placa,
         industry: industria,
         n_fiscal,
@@ -354,7 +354,11 @@ async function exbirRegistrosEntrada(c) {
       .eq("user_email", user_email)
       .single();
 
-    await fecharRegistrosEntradas(supabase);
+    try {
+      await fecharRegistrosEntradas(supabase);
+    } catch (e) {
+      console.log("Erro ao fechar automático:", e);
+    }
 
     const { data: entradas, error: entradaError } = await supabase
       .from("accessregister")
