@@ -165,7 +165,7 @@ async function verConta(c) {
   }
 }
 
-export async function criarRegistroEntrega(c) {
+async function criarRegistroEntrega(c) {
   const supabase = getSupabase(c.env);
 
   try {
@@ -220,7 +220,7 @@ export async function criarRegistroEntrega(c) {
   }
 }
 
-export async function criarRegistroEntrada(c) {
+async function criarRegistroEntrada(c) {
   const supabase = getSupabase(c.env);
 
   try {
