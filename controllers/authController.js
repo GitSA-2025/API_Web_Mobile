@@ -419,6 +419,11 @@ export async function salvarQRCode(c) {
   const { qrId, email, expiresAt, singleUse } = await c.req.json();
 
   try {
+
+    const agora = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+    );
+
     const { data, error } = await supabase
       .from("qrcodes")
       .insert([
@@ -427,7 +432,8 @@ export async function salvarQRCode(c) {
           user_email: email,
           expires_at: expiresAt,
           used: false,
-          single_use: singleUse
+          single_use: singleUse,
+          created_at: agora
         }
       ])
       .select()
