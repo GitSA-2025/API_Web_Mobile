@@ -165,31 +165,22 @@ async function verConta(c) {
   }
 }
 
-async function criarRegistroEntrega(c) {
+export async function criarRegistroEntrega(c) {
   const supabase = getSupabase(c.env);
 
   try {
     const { nome, telefone, placa, industria, n_fiscal, user_email } = await c.req.json();
 
-    console.log("Dados recebidos:", { nome, telefone, placa, industria, n_fiscal, user_email });
+    // Hora atual no Brasil
+    const agora = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+    );
 
-    const agora_brasil = new Date().toLocaleString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
+    // yyyy-mm-dd
+    const dateSQL = agora.toISOString().slice(0, 10);
 
-    const [data_formatada_hora, hora_completa] = agora_brasil.split(', ');
-    const data_formatada = data_formatada_hora.replace(/\//g, '-');
-    const hrentrada = hora_completa.split(':').slice(0, 3).join(':');
-
-    console.log(`Data formatada (dd-mm-aaaa): ${data_formatada}`);
-    console.log(`Hora (BRT/BRST): ${hrentrada}`);
+    // hh:mm:ss
+    const hourSQL = agora.toTimeString().slice(0, 8);
 
     const { data: user, error: userErr } = await supabase
       .from("userapp")
@@ -198,122 +189,100 @@ async function criarRegistroEntrega(c) {
       .single();
 
     if (userErr || !user) {
-      return c.json({ error: 'Usuário não encontrado.' }, 400);
+      return c.json({ error: "Usuário não encontrado." }, 400);
     }
 
     const { data, error } = await supabase
       .from("deliveryregister")
-      .insert([
-        {
-          name: nome,
-          phone: telefone,
-          date: data_formatada,
-          hr_entry: hrentrada,
-          plate_vehicle: placa,
-          industry: industria,
-          n_fiscal: n_fiscal,
-          iduser: user.id_user,
-          type: 'entregador'
-        }
-      ])
+      .insert([{
+        name: nome,
+        phone: telefone,
+        date: dateSQL,
+        hr_entry: hourSQL,   
+        plate_vehicle: placa,
+        industry: industria,
+        n_fiscal,
+        iduser: user.id_user,
+        type: "entregador"
+      }])
       .select();
 
     if (error) throw error;
 
-    return c.json(
-      {
-        message: 'Registro cadastrado!',
-        registro_entrega: data[0],
-      },
-      201
-    );
+    return c.json({
+      message: "Registro cadastrado!",
+      registro_entrega: data[0]
+    }, 201);
 
   } catch (err) {
-    console.error('Erro no registro de entrega:', err);
-    return c.json(
-      { error: 'Erro ao registrar a entrega.', details: err.message },
-      500
-    );
+    console.error("Erro no registro de entrega:", err);
+    return c.json({ error: "Erro ao registrar a entrega." }, 500);
   }
 }
 
-
-async function criarRegistroEntrada(c) {
-
+export async function criarRegistroEntrada(c) {
   const supabase = getSupabase(c.env);
 
   try {
     const { nome, tipo, cpf, placa, user_email } = await c.req.json();
 
     if (!nome || !tipo || !cpf) {
-      return c.json({ error: 'Nome, tipo de pessoa e CPF estão em branco. Preencha os campos corretamente.' }, 400);
+      return c.json({ error: "Nome, tipo de pessoa e CPF são obrigatórios." }, 400);
     }
 
-    const verifPlaca = placa && placa.trim() !== '' ? placa.trim() : 'Não se aplica.';
+    const verifPlaca = placa && placa.trim() !== "" ? placa.trim() : "Não se aplica.";
 
-    const cpfHast = await encrypt(cpf);
+    const cpfHash = await encrypt(cpf);
 
-    const agora_brasil = new Date().toLocaleTimeString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
+    // Hora atual Brasil
+    const agora = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+    );
 
-    const [data_formatada_hora, hora_completa] = agora_brasil.split(', ');
+    // yyyy-mm-dd
+    const dateSQL = agora.toISOString().slice(0, 10);
 
+    // hh:mm:ss
+    const hourSQL = agora.toTimeString().slice(0, 8);
 
-    const data_formatada = data_formatada_hora.replace(/\//g, '-');
-
-
-    const hrentrada = hora_completa.split(':').slice(0, 3).join(':');
-
-    const { data: user } = await supabase
+    const { data: user, error: userErr } = await supabase
       .from("userapp")
       .select("*")
       .eq("user_email", user_email)
       .single();
 
-    if (!user || user.length === 0) {
-      return c.json({ error: 'Usuário logado não encontrado.' }, 404);
+    if (userErr || !user) {
+      return c.json({ error: "Usuário logado não encontrado." }, 404);
     }
-
-    const dados_user = user;
 
     const { data, error } = await supabase
       .from("accessregister")
-      .insert([
-        {
-          name: nome,
-          cpf: cpfHast,
-          type_person: tipo,
-          date: data_formatada,
-          hr_entry: hrentrada,
-          hr_exit: '-',
-          car_plate: verifPlaca,
-          status: 'Liberado',
-          iduser: dados_user.id_user
-        }
-      ])
+      .insert([{
+        name: nome,
+        cpf: cpfHash,
+        type_person: tipo,
+        date: dateSQL,
+        hr_entry: hourSQL,
+        hr_exit: "-",
+        car_plate: verifPlaca,
+        status: "Liberado",
+        iduser: user.id_user
+      }])
       .select();
 
     if (error) throw error;
 
     return c.json({
-      message: 'Registro cadastrado!',
+      message: "Registro cadastrado!",
       registro_entrada: data[0],
     }, 201);
 
-  }
-  catch (err) {
-    console.error('Erro ao registro entrada: ', err);
-    return c.json({ error: 'Erro ao registrar entrada.' }, 500);
+  } catch (err) {
+    console.error("Erro ao registro entrada:", err);
+    return c.json({ error: "Erro ao registrar entrada." }, 500);
   }
 }
+
 
 async function exbirRegistrosEntrega(c) {
 
