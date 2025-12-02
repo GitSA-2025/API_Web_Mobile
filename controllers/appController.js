@@ -957,15 +957,13 @@ export async function verSolicitacoes(c) {
 async function fecharRegistrosEntradas(supabase) {
   try {
     const agora = new Date(
-      new Date().toLocaleString("pt-BR", {
-        timeZone: "America/Sao_Paulo"
-      })
+      new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
     );
 
     const { data: registros, error } = await supabase
-      .from('accessregister')
-      .select('*')
-      .or('hr_exit.is.null,hr_exit.eq.-');
+      .from("accessregister")
+      .select("*")
+      .is("hr_exit", null);
 
     if (error) {
       console.error("Erro ao buscar registros:", error);
@@ -975,20 +973,30 @@ async function fecharRegistrosEntradas(supabase) {
     for (const reg of registros) {
       if (!reg.hr_entry || !reg.date_access) continue;
 
-      const entrada = new Date(`${reg.date_access}T${reg.hr_entry}`);
+      const dataHoraEntrada = new Date(
+        `${reg.date_access}T${reg.hr_entry}`
+      );
 
-      const diffMs = agora - entrada;
+      const diffMs = agora - dataHoraEntrada;
       const diffHoras = diffMs / (1000 * 60 * 60);
 
       if (diffHoras >= 6) {
-        await supabase
-          .from('accessregister')
-          .update({
-            hr_exit: agora.toTimeString().slice(0, 8)
-          })
-          .eq('idregister', reg.idregister);
 
-        console.log(`✅ Saída automática registrada: ${reg.idregister}`);
+        const hrSaida = agora.toTimeString().slice(0, 8);
+        const dataSaida = agora.toISOString().split("T")[0];
+
+        const { error: updateError } = await supabase
+          .from("accessregister")
+          .update({
+            hr_exit: hrSaida
+          })
+          .eq("idregister", reg.idregister);
+
+        if (updateError) {
+          console.error("Erro ao atualizar registro", reg.idregister);
+        } else {
+          console.log(`Saída automática registrada: ${reg.idregister}`);
+        }
       }
     }
 
@@ -996,6 +1004,7 @@ async function fecharRegistrosEntradas(supabase) {
     console.error("Erro ao fechar registros:", err);
   }
 }
+
 
 
 export {
