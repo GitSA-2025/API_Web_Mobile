@@ -102,7 +102,7 @@ export async function login(c) {
       return c.json({ error: "2FA não verificado" }, 403);
 
     const token = jwt.sign({ id: user.id_user }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "8h",
     });
 
     return c.json({ token });
