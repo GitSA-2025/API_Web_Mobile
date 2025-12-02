@@ -254,15 +254,6 @@ export async function gerarQRCodeController(c) {
     // --- STATUS APROVADO ---
     if (solicitacao.status === "aprovado") {
 
-
-      // Remove solicitação usada
-      const { error: delError } = await supabase
-        .from("qrcode_requests")
-        .delete()
-        .eq("id_requester", dados_user.id_user);
-
-      if (delError) throw delError;
-
       return c.json({
         status: "aprovado",
         userData: {
@@ -288,11 +279,6 @@ export async function gerarQRCodeController(c) {
 
   // --- STATUS NEGADO ---
   if (solicitacao.status === "negado") {
-    await supabase
-      .from("qrcode_requests")
-      .delete()
-      .eq("id_requester", dados_user.id_user);
-
     return c.json({
       status: "negado",
       error:
