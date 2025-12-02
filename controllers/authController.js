@@ -154,22 +154,22 @@ export async function verConta(c) {
 export async function editarPerfil(c) {
   const supabase = getSupabase(c.env);
 
-  const { nome, cpf,telefone, placa, user_email } = await c.req.json();
+  const { nome, cpf, telefone, placa, user_email } = await c.req.json();
 
   const cpfHash = await encrypt(cpf);
 
   try {
     const { data, error } = await supabase
-    .from("userweb")
-    .update({
-      name: nome,
-      phone: telefone,
-      plate: placa,
-      cpf: cpfHash
-    })
-    .eq("user_email", user_email)
-    .select()
-    .single();
+      .from("userweb")
+      .update({
+        name: nome,
+        phone: telefone,
+        plate: placa,
+        cpf: cpfHash
+      })
+      .eq("user_email", user_email)
+      .select()
+      .single();
 
     if (error) throw error;
 
@@ -222,12 +222,12 @@ export async function gerarQRCodeController(c) {
     }
 
     // Tenta descriptografar CPF
-    
+
     let cpfVisivel;
-    try{
+    try {
       cpfVisivel = await decrypt(dados_user.cpf);
     }
-    catch(e){
+    catch (e) {
       console.warn("Erro ao descriptografar CPF:", e.message);
       cpfVisivel = "Indisponível";
     }
@@ -235,14 +235,23 @@ export async function gerarQRCodeController(c) {
     console.log(cpfVisivel);
 
     // Busca solicitação de QRCode
-    const { data: solicitacao, error: reqError } = await supabase
+    const { data: solicitacoes, error: reqError } = await supabase
       .from("qrcode_requests")
       .select("*")
       .eq("id_requester", dados_user.id_user)
-      .limit(1)
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const solicitacao = solicitacoes ? solicitacoes[0] : null;
 
     if (reqError && reqError.code !== "PGRST116") throw reqError;
+
+    if (!solicitacao) {
+      // Se não houver nenhuma solicitação, retorna 403
+      return c.json({
+        error: "Nenhuma solicitação de QR Code encontrada. Por favor, solicite primeiro.",
+      }, 403);
+    }
 
     if (!solicitacao) {
       return c.json({
@@ -267,29 +276,29 @@ export async function gerarQRCodeController(c) {
           plate: dados_user.plate
         }
       });
-  }
+    }
 
     // --- STATUS PENDENTE ---
     if (solicitacao.status === "pendente") {
-    return c.json({
-      status: "pendente",
-      message: "Solicitação pendente de aprovação do porteiro.",
-    }, 200);
-  }
+      return c.json({
+        status: "pendente",
+        message: "Solicitação pendente de aprovação do porteiro.",
+      }, 200);
+    }
 
-  // --- STATUS NEGADO ---
-  if (solicitacao.status === "negado") {
-    return c.json({
-      status: "negado",
-      message:
-        "Sua solicitação foi negada. Por favor, faça uma nova solicitação.",
-    }, 200);
-  }
+    // --- STATUS NEGADO ---
+    if (solicitacao.status === "negado") {
+      return c.json({
+        status: "negado",
+        message:
+          "Sua solicitação foi negada. Por favor, faça uma nova solicitação.",
+      }, 200);
+    }
 
-} catch (err) {
-  console.error("Erro ao gerar QRCode:", err);
-  return c.json({ error: "Erro ao gerar QRCode. Erro interno." }, 500);
-}
+  } catch (err) {
+    console.error("Erro ao gerar QRCode:", err);
+    return c.json({ error: "Erro ao gerar QRCode. Erro interno." }, 500);
+  }
 }
 
 export async function gerarQrCodeComLink(c) {
