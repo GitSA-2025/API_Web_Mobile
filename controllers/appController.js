@@ -1,4 +1,5 @@
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -823,19 +824,25 @@ export async function geradorDeGraficoIA(c) {
       return c.json({ erro: "Datas não informadas" }, 400);
     }
 
+    const [diaIn, mesIn, anoIn] = dataInicio.split('-');
+    const dataInicio_fixed =  `${anoIn}-${mesIn}-${diaIn}`;
+
+    const [diaFim, mesFim, anoFim] = dataFim.split('-');
+    const dataFim_fixed =  `${anoFim}-${mesFim}-${diaFim}`;
+
     const { data: acessos, error: erroAcessos } = await supabase
       .from("accessregister")
       .select("type_person")
-      .gte("date", dataInicio)
-      .lte("date", dataFim);
+      .gte("date", dataInicio_fixed)
+      .lte("date", dataFim_fixed);
 
     if (erroAcessos) throw erroAcessos;
 
     const { data: entregas, error: erroEntregas } = await supabase
       .from("deliveryregister")
       .select("idregister")
-      .gte("date", dataInicio)
-      .lte("date", dataFim);
+      .gte("date", dataInicio_fixed)
+      .lte("date", dataFim_fixed);
 
     if (erroEntregas) throw erroEntregas;
 
@@ -852,7 +859,7 @@ export async function geradorDeGraficoIA(c) {
     return c.json({ grafico });
   } catch (err) {
     console.error("Erro ao gerar gráfico com IA:", err);
-    return c.json({ erro: "Erro interno ao gerar gráfico com IA" }, 500);
+    return c.json({ erro: "Erro interno ao gerar gráfico com IA", msgerror: err }, 500);
   }
 }
 

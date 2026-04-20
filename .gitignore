@@ -4,3 +4,4 @@ node_modules
 .database.sqlite
 wrangler.toml
 .wrangler
+.dev.vars
