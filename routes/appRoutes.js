@@ -23,6 +23,7 @@ import {
   verSolicitacoes,
   verConta,
 } from "../controllers/appController.js";
+import { atualizarFoto, removerFoto } from "../controllers/photoController.js";
 
 // Criando a instância do roteador Hono
 const router = new Hono();
@@ -126,6 +127,12 @@ router.post("/app/editarPerfil", authMiddleware, async (c) => await editarPerfil
 
 // Ver conta do usuário (rota alternativa)
 router.post("/app/conta", authMiddleware, async (c) => await verConta(c));
+
+// Atualizar foto de perfil (envia { foto_base64 })
+router.post("/app/atualizarFoto", authMiddleware, async (c) => await atualizarFoto(c));
+
+// Remover foto de perfil
+router.post("/app/removerFoto", authMiddleware, async (c) => await removerFoto(c));
 
 // Exportando o roteador para ser usado no servidor principal
 export default router;

@@ -7,6 +7,7 @@ import { generate2FACode } from "../utils/generate2FACode.js";
 import { send2FACode } from "../services/mailService.js";
 import { getSupabase } from "../db/db.js";
 import { encrypt, decrypt } from "../lib/crypto.js";
+import { salvarFotoPerfil, removerFotoPerfil } from '../services/photoService.js';
 
 
 
@@ -159,6 +160,7 @@ async function verConta(c) {
       name: user.name,
       user_email: user.user_email,
       phone: user.phone,
+      photo_url: user.photo_url,
     });
   } catch (err) {
     console.error("Erro ao buscar conta:", err);
@@ -1020,6 +1022,8 @@ async function fecharRegistrosEntradas(supabase) {
     console.error("❌ Erro ao fechar registros:", err);
   }
 }
+
+
 
 export {
   cadastrarAPP,
