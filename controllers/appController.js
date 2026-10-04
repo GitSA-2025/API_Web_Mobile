@@ -7,7 +7,6 @@ import { generate2FACode } from "../utils/generate2FACode.js";
 import { send2FACode } from "../services/mailService.js";
 import { getSupabase } from "../db/db.js";
 import { encrypt, decrypt } from "../lib/crypto.js";
-import { salvarFotoPerfil, removerFotoPerfil } from '../services/photoService.js';
 
 
 
