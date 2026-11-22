@@ -10,6 +10,7 @@ import { encrypt, decrypt } from "../lib/crypto.js";
 import { getSupabase } from "../db/db.js";
 
 
+
 export async function cadastrar(c) {
 
   const supabase = getSupabase(c.env);
@@ -491,5 +492,50 @@ export async function validarQRCode(c) {
   });
 }
 
+export async function gerarQrCodeComLink(c) {
+  const supabase = getSupabase(c.env);
+
+  try {
+    const user_email = c.req.param("user_email");
+
+    const { data: dados_user, error } = await supabase
+      .from("userweb")
+      .select("*")
+      .eq("user_email", user_email)
+      .single();
+
+    if (error || !dados_user) {
+      return c.json({ error: "Usuário não encontrado." }, 404);
+    }
+
+    if (dados_user.cpf) {
+      try {
+        dados_user.cpf = await decrypt(dados_user.cpf);
+      } catch (err) {
+        console.warn("Não foi possível descriptografar o CPF:", err);
+      }
+    }
+
+    const payload = {
+      id_user: dados_user.id_user,
+      name: dados_user.name,
+      cpf: dados_user.cpf,
+      user_email: dados_user.user_email,
+      phone: dados_user.phone,
+      type_user: dados_user.type_user,
+      verify2fa: dados_user.verify2fa,
+    };
+
+    const qrCodeSvg = generateQRCode(payload);
+
+    return c.json({
+      qrCode: `data:image/svg+xml;base64,${btoa(qrCodeSvg)}`,
+      status: "aprovado",
+    });
+  } catch (err) {
+    console.error("Erro ao gerar QR Code:", err);
+    return c.json({ error: "Erro ao gerar QRCode." }, 500);
+  }
+}
 
 
