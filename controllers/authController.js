@@ -188,30 +188,26 @@ export async function editarPerfil(c) {
 
 
 export async function gerarQRCodeController(c) {
-
   const supabase = getSupabase(c.env);
 
   try {
     let user_email = null;
+    let request_id = null;
 
-    // Se vier via POST (body JSON)
     if (c.req.method === "POST") {
       const body = await c.req.json();
       user_email = body?.user_email;
-    }
-
-    // Se vier via GET (query string)
-    if (c.req.method === "GET") {
+      request_id = body?.request_id || null;
+    } else if (c.req.method === "GET") {
       const url = new URL(c.req.url);
       user_email = url.searchParams.get("email");
+      request_id = url.searchParams.get("request_id");
     }
 
     if (!user_email) {
       return c.json({ error: "Email não informado." }, 400);
     }
 
-
-    // Busca usuário
     const { data: dados_user, error: userError } = await supabase
       .from("userweb")
       .select("*")
@@ -222,50 +218,84 @@ export async function gerarQRCodeController(c) {
       return c.json({ error: "Usuário não encontrado." }, 404);
     }
 
-    // Tenta descriptografar CPF
-
     let cpfVisivel;
     try {
       cpfVisivel = await decrypt(dados_user.cpf);
-    }
-    catch (e) {
+    } catch (e) {
       console.warn("Erro ao descriptografar CPF:", e.message);
       cpfVisivel = "Indisponível";
     }
 
-    console.log(cpfVisivel);
-
-    // Busca solicitação de QRCode
-    const { data: solicitacoes, error: reqError } = await supabase
+    // Busca a solicitação específica (se enviada) ou a mais recente do usuário
+    let query = supabase
       .from("qrcode_requests")
       .select("*")
-      .eq("id_requester", dados_user.id_user)
-      .order("created_at", { ascending: false })
-      .limit(1);
+      .eq("id_requester", dados_user.id_user);
+
+    if (request_id) {
+      query = query.eq("id", request_id);
+    } else {
+      query = query.order("created_at", { ascending: false }).limit(1);
+    }
+
+    const { data: solicitacoes, error: reqError } = await query;
+    if (reqError && reqError.code !== "PGRST116") throw reqError;
 
     const solicitacao = solicitacoes ? solicitacoes[0] : null;
 
-    if (reqError && reqError.code !== "PGRST116") throw reqError;
-
-    if (!solicitacao) {
-      // Se não houver nenhuma solicitação, retorna 403
+    if (!solicitacao || solicitacao.status === "expirado" || solicitacao.status === "gerado") {
       return c.json({
-        error: "Nenhuma solicitação de QR Code encontrada. Por favor, solicite primeiro.",
+        error: "Nenhuma solicitação ativa encontrada. Por favor, solicite um novo QR Code.",
       }, 403);
     }
 
-    if (!solicitacao) {
+    if (solicitacao.status === "pendente") {
       return c.json({
-        error:
-          "Nenhuma solicitação de QR Code encontrada. Por favor, solicite primeiro.",
-      }, 403);
+        status: "pendente",
+        request_id: solicitacao.id,
+        message: "Solicitação pendente de aprovação do porteiro.",
+      }, 200);
     }
 
-    // --- STATUS APROVADO ---
+    if (solicitacao.status === "negado") {
+      return c.json({
+        status: "negado",
+        request_id: solicitacao.id,
+        message: "Sua solicitação foi negada. Por favor, faça uma nova solicitação.",
+      }, 200);
+    }
+
     if (solicitacao.status === "aprovado") {
+      const isVisitante = (dados_user.type_user || "").toLowerCase() === "visitante";
+      const qrId = crypto.randomUUID();
+      const expiresAt = isVisitante
+        ? new Date(Date.now() + 45 * 60 * 1000).toISOString()
+        : null;
+
+      // Consome a solicitação aprovada para que não possa ser reutilizada em pedidos futuros
+      await supabase
+        .from("qrcode_requests")
+        .update({ status: "gerado" })
+        .eq("id", solicitacao.id);
+
+      // Registra o QR Code diretamente na tabela qrcodes com o user_email correto
+      await supabase.from("qrcodes").insert([
+        {
+          qr_id: qrId,
+          user_email: dados_user.user_email,
+          expires_at: expiresAt,
+          used: false,
+          single_use: isVisitante,
+          created_at: new Date().toISOString(),
+        },
+      ]);
 
       return c.json({
         status: "aprovado",
+        request_id: solicitacao.id,
+        qrId,
+        expiresAt,
+        singleUse: isVisitante,
         userData: {
           id_user: dados_user.id_user,
           name: dados_user.name,
@@ -274,81 +304,13 @@ export async function gerarQRCodeController(c) {
           phone: dados_user.phone,
           type_user: dados_user.type_user,
           verify2fa: dados_user.verify2fa,
-          plate: dados_user.plate
-        }
-      });
-    }
-
-    // --- STATUS PENDENTE ---
-    if (solicitacao.status === "pendente") {
-      return c.json({
-        status: "pendente",
-        message: "Solicitação pendente de aprovação do porteiro.",
+          plate: dados_user.plate,
+        },
       }, 200);
     }
-
-    // --- STATUS NEGADO ---
-    if (solicitacao.status === "negado") {
-      return c.json({
-        status: "negado",
-        message:
-          "Sua solicitação foi negada. Por favor, faça uma nova solicitação.",
-      }, 200);
-    }
-
   } catch (err) {
     console.error("Erro ao gerar QRCode:", err);
     return c.json({ error: "Erro ao gerar QRCode. Erro interno." }, 500);
-  }
-}
-
-export async function gerarQrCodeComLink(c) {
-
-  const supabase = getSupabase(c.env);
-
-  try {
-    const user_email = await c.req.param("user_email");
-
-    const { data: dados_user, error } = await supabase
-      .from("userweb")
-      .select("*")
-      .eq("user_email", user_email)
-      .single();
-
-    if (error || !dados_user) {
-      return c.json({ error: "Usuário não encontrado." }, 404);
-    }
-
-    if (dados_user.cpf) {
-      try {
-        dados_user.cpf = decrypt(dados_user.cpf);
-      } catch (err) {
-        console.warn("Não foi possível descriptografar o CPF:", err);
-      }
-    }
-
-    // Monta o payload
-    const payload = {
-      id_user: dados_user.id_user,
-      name: dados_user.name,
-      cpf: dados_user.cpf,
-      user_email: dados_user.user_email,
-      phone: dados_user.phone,
-      type_user: dados_user.type_user,
-      verify2fa: dados_user.verify2fa,
-    };
-
-    // Gera o QRCode
-    const qrCodeSvg = generateQRCode(payload);
-
-    return c.json({
-      qrCode: `data:image/svg+xml;base64,${btoa(qrCodeSvg)}`,
-      status: "aprovado"
-    });
-
-  } catch (err) {
-    console.error("Erro ao gerar QR Code:", err);
-    return c.json({ error: "Erro ao gerar QRCode." }, 500);
   }
 }
 
@@ -369,40 +331,67 @@ export async function gerarQrCodeComLink(c) {
 }*/
 
 export async function solicitarQRCode(c) {
-
   const supabase = getSupabase(c.env);
 
   try {
-    const user_email = await c.req.param("user_email");
+    const user_email = decodeURIComponent(c.req.param("user_email") || "").trim();
 
-    const { data: user } = await supabase
+    if (!user_email) {
+      return c.json({ error: "E-mail não informado." }, 400);
+    }
+
+    const { data: user, error: userErr } = await supabase
       .from("userweb")
       .select("id_user")
       .eq("user_email", user_email)
       .single();
 
-    if (!user) return c.json({ error: "Usuário não encontrado." }, 404);
+    if (userErr || !user) {
+      return c.json({ error: "Usuário não encontrado." }, 404);
+    }
 
+    // 1. Se já existe solicitação pendente, retorna ela mesma
     const { data: existente } = await supabase
       .from("qrcode_requests")
-      .select("*")
+      .select("id, status")
       .eq("id_requester", user.id_user)
-      .eq("status", "pendente");
+      .eq("status", "pendente")
+      .order("created_at", { ascending: false })
+      .limit(1);
 
     if (existente && existente.length > 0) {
       return c.json({
         message: "Você já possui uma solicitação pendente.",
         status: "pendente",
+        request_id: existente[0].id,
       }, 200);
     }
 
-    const agora = new Date(
-      new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
-    );
+    // 2. Expira solicitações antigas que ficaram com status "aprovado" para não vazar QR antigo
+    await supabase
+      .from("qrcode_requests")
+      .update({ status: "expirado" })
+      .eq("id_requester", user.id_user)
+      .eq("status", "aprovado");
 
+    // 3. Invalida QR Codes antigos de uso único ainda não utilizados desse visitante
+    await supabase
+      .from("qrcodes")
+      .update({ used: true })
+      .eq("user_email", user_email)
+      .eq("single_use", true)
+      .eq("used", false);
+
+    // 4. Cria a nova solicitação pendente com timestamp UTC padronizado
     const { data: inserted, error } = await supabase
       .from("qrcode_requests")
-      .insert([{ id_requester: user.id_user, status: "pendente",  created_at: agora}])
+      .insert([
+        {
+          id_requester: user.id_user,
+          status: "pendente",
+          created_at: new Date().toISOString(),
+        },
+      ])
       .select()
       .single();
 
@@ -410,6 +399,7 @@ export async function solicitarQRCode(c) {
 
     return c.json({
       message: "Solicitação feita com sucesso! Aguarde a aprovação.",
+      status: "pendente",
       request_id: inserted.id,
     }, 201);
   } catch (err) {
@@ -421,25 +411,35 @@ export async function solicitarQRCode(c) {
 export async function salvarQRCode(c) {
   const supabase = getSupabase(c.env);
 
-  const { qrId, email, expiresAt, singleUse } = await c.req.json();
-
   try {
+    const { qrId, email, user_email, expiresAt, singleUse } = await c.req.json();
+    const emailFinal = user_email || email;
 
-    const agora = new Date(
-      new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
-    );
+    // Evita erro de duplicidade caso gerarQRCodeController já tenha registrado
+    const { data: existente } = await supabase
+      .from("qrcodes")
+      .select("*")
+      .eq("qr_id", qrId)
+      .maybeSingle();
+
+    if (existente) {
+      return c.json({
+        message: "QR Code já registrado.",
+        qrcode: existente,
+      }, 200);
+    }
 
     const { data, error } = await supabase
       .from("qrcodes")
       .insert([
         {
           qr_id: qrId,
-          user_email: email,
+          user_email: emailFinal,
           expires_at: expiresAt,
           used: false,
           single_use: singleUse,
-          created_at: agora
-        }
+          created_at: new Date().toISOString(),
+        },
       ])
       .select()
       .single();
@@ -448,11 +448,10 @@ export async function salvarQRCode(c) {
 
     return c.json({
       message: "QR Code salvo com sucesso!",
-      qrcode: data
+      qrcode: data,
     }, 201);
-
   } catch (err) {
-    console.log(err);
+    console.error(err);
     return c.json({ error: "Erro ao salvar QR Code" }, 500);
   }
 }
@@ -471,21 +470,15 @@ export async function validarQRCode(c) {
     return c.json({ error: "QR Code inválido" }, 404);
   }
 
-  // Se for de visitante
   if (data.single_use) {
-    // Já foi usado?
     if (data.used) {
       return c.json({ error: "QR Code já utilizado" }, 400);
     }
 
-    // Já venceu?
     if (data.expires_at && new Date() > new Date(data.expires_at)) {
       return c.json({ error: "QR Code expirado" }, 400);
     }
-  }
 
-  // Marca como usado se for single use
-  if (data.single_use) {
     await supabase
       .from("qrcodes")
       .update({ used: true })
@@ -494,7 +487,7 @@ export async function validarQRCode(c) {
 
   return c.json({
     message: "Acesso liberado",
-    email: data.email
+    email: data.user_email,
   });
 }
 
